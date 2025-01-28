@@ -23,8 +23,18 @@ class AccordionCard extends HTMLElement {
         const filterFontSize = this.config.filter_font_size || "14px";
         const filterBackgroundColor = this.config.filter_background_color || "var(--primary-background-color)";
         const filterButtonColor = this.config.filter_button_color || "var(--secondary-background-color)";
+        const searchFontSize = this.config.search_font_size || "14px";
+        const searchBackgroundColor = this.config.search_background_color || "var(--primary-background-color)";
+        const showSearch = this.config.show_search || false; // Standard: Nicht anzeigen
         const allowMinimize = this.config.allow_minimize || false;
         const allowMaximize = this.config.allow_maximize || false;
+
+        // Texte für Übersetzungen
+        const translations = {
+            search_placeholder: this.translate("search_placeholder") || "Search by title or category...",
+            minimize_all: this.translate("minimize_all") || "Minimize All",
+            maximize_all: this.translate("maximize_all") || "Maximize All",
+        };
 
         const style = `
             <style>
@@ -66,7 +76,9 @@ class AccordionCard extends HTMLElement {
                     padding: 8px;
                     border: 1px solid var(--divider-color);
                     border-radius: 4px;
-                    font-size: ${filterFontSize};
+                    font-size: ${searchFontSize};
+                    background-color: ${searchBackgroundColor};
+                    outline: none; /* Entfernt blauen Strich */
                 }
                 .accordion-item {
                     border-bottom: 1px solid var(--divider-color);
@@ -105,17 +117,19 @@ class AccordionCard extends HTMLElement {
         const container = document.createElement("div");
         container.className = "accordion";
 
-        // Suchleiste hinzufügen
-        const searchBar = document.createElement("div");
-        searchBar.className = "accordion-search";
+        // Suchleiste hinzufügen (nur wenn aktiviert)
+        if (showSearch) {
+            const searchBar = document.createElement("div");
+            searchBar.className = "accordion-search";
 
-        const searchInput = document.createElement("input");
-        searchInput.type = "text";
-        searchInput.placeholder = "Suche nach Titel oder Kategorie...";
-        searchInput.addEventListener("input", (e) => this.applySearch(e.target.value));
+            const searchInput = document.createElement("input");
+            searchInput.type = "text";
+            searchInput.placeholder = translations.search_placeholder;
+            searchInput.addEventListener("input", (e) => this.applySearch(e.target.value));
 
-        searchBar.appendChild(searchInput);
-        container.appendChild(searchBar);
+            searchBar.appendChild(searchInput);
+            container.appendChild(searchBar);
+        }
 
         // Filterleiste hinzufügen
         if (this.config.filters && this.config.filters.length > 0) {
@@ -125,7 +139,7 @@ class AccordionCard extends HTMLElement {
             if (allowMinimize) {
                 const minimizeButton = document.createElement("div");
                 minimizeButton.className = "accordion-filter";
-                minimizeButton.textContent = "Alle minimieren";
+                minimizeButton.textContent = translations.minimize_all;
                 minimizeButton.addEventListener("click", () => this.minimizeAllTabs());
                 filterBar.appendChild(minimizeButton);
             }
@@ -133,7 +147,7 @@ class AccordionCard extends HTMLElement {
             if (allowMaximize) {
                 const maximizeButton = document.createElement("div");
                 maximizeButton.className = "accordion-filter";
-                maximizeButton.textContent = "Alle maximieren";
+                maximizeButton.textContent = translations.maximize_all;
                 maximizeButton.addEventListener("click", () => this.maximizeAllTabs());
                 filterBar.appendChild(maximizeButton);
             }
@@ -212,28 +226,6 @@ class AccordionCard extends HTMLElement {
         });
     }
 
-    applyFilter(filter) {
-        const items = this.shadowRoot.querySelectorAll(".accordion-item");
-        items.forEach((item, index) => {
-            const currentItem = this.config.items[index];
-
-            // Wenn die Kategorie "all" ist oder die Kategorie mit dem Filter übereinstimmt, zeigen wir das Item an
-            if (filter.category === "all" || currentItem.category === filter.category) {
-                item.style.display = "block";
-            } else {
-                item.style.display = "none";
-            }
-        });
-
-        // Setze den aktiven Zustand für die Filterbuttons
-        this.shadowRoot.querySelectorAll(".accordion-filter").forEach((btn) => {
-            btn.classList.remove("active");
-        });
-        const activeButton = Array.from(this.shadowRoot.querySelectorAll(".accordion-filter"))
-            .find((btn) => btn.textContent === filter.name);
-        if (activeButton) activeButton.classList.add("active");
-    }
-
     minimizeAllTabs() {
         const bodies = this.shadowRoot.querySelectorAll(".accordion-body");
         bodies.forEach((body) => {
@@ -258,6 +250,25 @@ class AccordionCard extends HTMLElement {
         if (!isActive) {
             body.classList.add("active");
         }
+    }
+
+    translate(key) {
+        const translations = {
+            search_placeholder: {
+                en: "Search by title or category...",
+                de: "Suche nach Titel oder Kategorie...",
+            },
+            minimize_all: {
+                en: "Minimize All",
+                de: "Alle minimieren",
+            },
+            maximize_all: {
+                en: "Maximize All",
+                de: "Alle maximieren",
+            },
+        };
+        const lang = this._hass?.language || "en";
+        return translations[key]?.[lang] || translations[key]?.en;
     }
 
     set hass(hass) {
