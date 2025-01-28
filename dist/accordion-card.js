@@ -2,6 +2,8 @@ class AccordionCard extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({ mode: "open" });
+        // Get Home Assistant language
+        this.ha_language = document.querySelector("home-assistant")?.hass?.language || 'en';
         // Add translations
         this.translations = {
             en: {
@@ -34,7 +36,7 @@ class AccordionCard extends HTMLElement {
 
         this.config = {
             ...config,
-            language: config.language || 'en' // Default language
+            language: config.language || this.ha_language || 'en' // Use HA language or fallback to en
         };
         this.cardHelpers = await window.loadCardHelpers();
         this.render();
@@ -74,6 +76,57 @@ class AccordionCard extends HTMLElement {
                     padding: 10px;
                     background-color: ${filter_background_color};
                     font-size: ${filter_font_size};
+                    overflow-x: auto;
+                    scrollbar-width: none; /* Firefox */
+                    -ms-overflow-style: none; /* IE and Edge */
+                    scroll-behavior: smooth;
+                    -webkit-overflow-scrolling: touch;
+                    white-space: nowrap;
+                }
+                
+                /* Hide scrollbar for Chrome, Safari and Opera */
+                .accordion-filters::-webkit-scrollbar {
+                    display: none;
+                }
+                
+                /* Touch scroll indicators */
+                .accordion-filters-container {
+                    position: relative;
+                }
+                
+                .scroll-indicator {
+                    position: absolute;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    width: 32px;
+                    height: 32px;
+                    background: rgba(var(--rgb-primary-color), 0.9);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                    z-index: 1;
+                }
+                
+                .scroll-indicator.left {
+                    left: 0;
+                }
+                
+                .scroll-indicator.right {
+                    right: 0;
+                }
+                
+                .scroll-indicator.visible {
+                    opacity: 1;
+                }
+                
+                .scroll-indicator svg {
+                    width: 24px;
+                    height: 24px;
+                    fill: var(--primary-text-color);
                 }
                 .accordion-filter {
                     cursor: pointer;
@@ -201,8 +254,23 @@ class AccordionCard extends HTMLElement {
 
         // Add filters
         if (this.config.filters?.length > 0) {
+            const filterContainer = document.createElement("div");
+            filterContainer.className = "accordion-filters-container";
+
             const filterBar = document.createElement("div");
             filterBar.className = "accordion-filters";
+
+            // Add scroll indicators
+            const leftIndicator = document.createElement("div");
+            leftIndicator.className = "scroll-indicator left";
+            leftIndicator.innerHTML = '<svg viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>';
+
+            const rightIndicator = document.createElement("div");
+            rightIndicator.className = "scroll-indicator right";
+            rightIndicator.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>';
+
+            // Add scroll functionality
+            this.setupScroll(filterBar, leftIndicator, rightIndicator);
 
             // Add "All" filter if it doesn't exist
             if (!this.config.filters.some(f => f.name === this.translations[this.config.language]?.all)) {
@@ -217,7 +285,10 @@ class AccordionCard extends HTMLElement {
                 filterBar.appendChild(this.createFilterButton(filter));
             });
 
-            container.appendChild(filterBar);
+            filterContainer.appendChild(leftIndicator);
+            filterContainer.appendChild(filterBar);
+            filterContainer.appendChild(rightIndicator);
+            container.appendChild(filterContainer);
         }
 
         // Render accordion items
@@ -274,6 +345,72 @@ class AccordionCard extends HTMLElement {
                 this.maximizeAll();
             }
         }
+    }
+
+    createFilterButton(filter) {
+        const filterButton = document.createElement("button");
+        filterButton.className = "accordion-filter";
+        filterButton.textContent = filter.name;
+        filterButton.addEventListener("click", () => this.applyFilter(filter));
+        return filterButton;
+    }
+
+    setupScroll(filterBar, leftIndicator, rightIndicator) {
+        const checkScroll = () => {
+            const isScrollable = filterBar.scrollWidth > filterBar.clientWidth;
+            const isAtStart = filterBar.scrollLeft <= 0;
+            const isAtEnd = filterBar.scrollLeft >= filterBar.scrollWidth - filterBar.clientWidth;
+
+            leftIndicator.classList.toggle('visible', isScrollable && !isAtStart);
+            rightIndicator.classList.toggle('visible', isScrollable && !isAtEnd);
+        };
+
+        // Initial check
+        setTimeout(checkScroll, 100);
+
+        // Check on scroll
+        filterBar.addEventListener('scroll', checkScroll);
+
+        // Check on resize
+        window.addEventListener('resize', checkScroll);
+
+        // Scroll buttons functionality
+        leftIndicator.addEventListener('click', () => {
+            filterBar.scrollBy({
+                left: -200,
+                behavior: 'smooth'
+            });
+        });
+
+        rightIndicator.addEventListener('click', () => {
+            filterBar.scrollBy({
+                left: 200,
+                behavior: 'smooth'
+            });
+        });
+
+        // Touch scroll handling
+        let isScrolling = false;
+        let startX;
+        let scrollLeft;
+
+        filterBar.addEventListener('touchstart', (e) => {
+            isScrolling = true;
+            startX = e.touches[0].pageX - filterBar.offsetLeft;
+            scrollLeft = filterBar.scrollLeft;
+        });
+
+        filterBar.addEventListener('touchmove', (e) => {
+            if (!isScrolling) return;
+            e.preventDefault();
+            const x = e.touches[0].pageX - filterBar.offsetLeft;
+            const walk = (x - startX) * 2;
+            filterBar.scrollLeft = scrollLeft - walk;
+        });
+
+        filterBar.addEventListener('touchend', () => {
+            isScrolling = false;
+        });
     }
 
     createFilterButton(filter) {
