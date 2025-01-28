@@ -221,10 +221,11 @@ class AccordionCard extends HTMLElement {
                     opacity: 0;
                     overflow: hidden;
                     transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+                    will-change: max-height, opacity;
                 }
                 .accordion-body.open {
                     background-color: ${background_open};
-                    max-height: 1000px;
+                    max-height: none;
                     opacity: 1;
                 }
                 .header-content {
