@@ -4,12 +4,16 @@ class AccordionCard extends HTMLElement {
         this.attachShadow({ mode: "open" });
     }
 
-    setConfig(config) {
+    async setConfig(config) {
         if (!config.items || !Array.isArray(config.items)) {
             throw new Error("You need to define an array of items.");
         }
 
         this.config = config;
+
+        // Lade die Lovelace-Karten-Helfer
+        this.cardHelpers = await window.loadCardHelpers();
+
         this.render();
     }
 
@@ -62,10 +66,11 @@ class AccordionCard extends HTMLElement {
             body.className = "accordion-body";
             body.dataset.index = index;
 
-            const cardConfig = item.card;
-            if (cardConfig) {
-                const card = this.createCard(cardConfig);
-                body.appendChild(card);
+            if (item.card) {
+                // Erstelle die Karte
+                this.createCard(item.card).then((card) => {
+                    if (card) body.appendChild(card);
+                });
             }
 
             const itemContainer = document.createElement("div");
@@ -80,10 +85,15 @@ class AccordionCard extends HTMLElement {
         this.shadowRoot.appendChild(accordion);
     }
 
-    createCard(config) {
-        const card = document.createElement("ha-card");
-        card.setConfig(config);
-        return card;
+    async createCard(config) {
+        if (!this.cardHelpers) {
+            this.cardHelpers = await window.loadCardHelpers();
+        }
+
+        const cardElement = await this.cardHelpers.createCardElement(config);
+        cardElement.setConfig(config);
+
+        return cardElement;
     }
 
     toggleItem(index) {
