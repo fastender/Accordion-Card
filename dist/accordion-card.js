@@ -10,10 +10,7 @@ class AccordionCard extends HTMLElement {
         }
 
         this.config = config;
-
-        // Load Lovelace card helpers
         this.cardHelpers = await window.loadCardHelpers();
-
         this.render();
     }
 
@@ -69,8 +66,7 @@ class AccordionCard extends HTMLElement {
                     color: var(--text-primary-color);
                 }
                 .accordion-search {
-                    width: 100%;
-                    margin-bottom: 10px;
+                    padding: 10px;
                     background-color: ${search_background_color};
                 }
                 .accordion-search input {
@@ -79,6 +75,8 @@ class AccordionCard extends HTMLElement {
                     border: 1px solid var(--divider-color);
                     border-radius: 4px;
                     font-size: ${search_font_size};
+                    background: var(--card-background-color);
+                    color: var(--primary-text-color);
                 }
                 .accordion-item {
                     border-bottom: 1px solid var(--divider-color);
@@ -112,9 +110,20 @@ class AccordionCard extends HTMLElement {
                 }
                 .arrow {
                     transition: transform 0.3s ease;
+                    margin-left: 8px;
                 }
                 .arrow.open {
                     transform: rotate(90deg);
+                }
+                .controls {
+                    display: flex;
+                    gap: 8px;
+                    align-items: center;
+                }
+                .control-button {
+                    cursor: pointer;
+                    padding: 4px;
+                    color: var(--primary-text-color);
                 }
             </style>
         `;
@@ -129,7 +138,7 @@ class AccordionCard extends HTMLElement {
 
             const searchInput = document.createElement("input");
             searchInput.type = "text";
-            searchInput.placeholder = "Search by title or category...";
+            searchInput.placeholder = "Search...";
             searchInput.addEventListener("input", (e) => this.applySearch(e.target.value));
 
             searchBar.appendChild(searchInput);
@@ -142,7 +151,7 @@ class AccordionCard extends HTMLElement {
             filterBar.className = "accordion-filters";
 
             this.config.filters.forEach((filter) => {
-                const filterButton = document.createElement("div");
+                const filterButton = document.createElement("button");
                 filterButton.className = "accordion-filter";
                 filterButton.textContent = filter.name;
                 filterButton.addEventListener("click", () => this.applyFilter(filter));
@@ -152,8 +161,11 @@ class AccordionCard extends HTMLElement {
             container.appendChild(filterBar);
         }
 
-        // Render tabs
+        // Render accordion items
         this.config.items.forEach((item, index) => {
+            const accordionItem = document.createElement("div");
+            accordionItem.className = "accordion-item";
+
             const header = document.createElement("div");
             header.className = "accordion-header";
             header.addEventListener("click", () => this.toggleTab(index, always_open));
@@ -162,13 +174,43 @@ class AccordionCard extends HTMLElement {
             title.textContent = item.title || `Item ${index + 1}`;
             header.appendChild(title);
 
+            const controls = document.createElement("div");
+            controls.className = "controls";
+
+            // Add minimize/maximize buttons if enabled
+            if (allow_minimize || allow_maximize) {
+                if (allow_minimize) {
+                    const minimizeBtn = document.createElement("span");
+                    minimizeBtn.className = "control-button minimize";
+                    minimizeBtn.textContent = "−";
+                    minimizeBtn.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        this.minimizeAll();
+                    });
+                    controls.appendChild(minimizeBtn);
+                }
+
+                if (allow_maximize) {
+                    const maximizeBtn = document.createElement("span");
+                    maximizeBtn.className = "control-button maximize";
+                    maximizeBtn.textContent = "+";
+                    maximizeBtn.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        this.maximizeAll();
+                    });
+                    controls.appendChild(maximizeBtn);
+                }
+            }
+
             // Add arrow icon if enabled
             if (show_arrow) {
                 const arrow = document.createElement("span");
                 arrow.className = "arrow";
                 arrow.textContent = ">";
-                header.appendChild(arrow);
+                controls.appendChild(arrow);
             }
+
+            header.appendChild(controls);
 
             const body = document.createElement("div");
             body.className = "accordion-body";
@@ -180,8 +222,9 @@ class AccordionCard extends HTMLElement {
                 });
             }
 
-            container.appendChild(header);
-            container.appendChild(body);
+            accordionItem.appendChild(header);
+            accordionItem.appendChild(body);
+            container.appendChild(accordionItem);
         });
 
         this.shadowRoot.innerHTML = style;
@@ -204,14 +247,14 @@ class AccordionCard extends HTMLElement {
 
     applySearch(term) {
         const items = this.shadowRoot.querySelectorAll(".accordion-item");
-        term = term.toLowerCase();
+        term = term.toLowerCase().trim();
 
         items.forEach((item, index) => {
             const currentItem = this.config.items[index];
-            const match =
-                currentItem.title.toLowerCase().includes(term) ||
-                (currentItem.category && currentItem.category.toLowerCase().includes(term));
-
+            const title = (currentItem.title || '').toLowerCase();
+            const category = (currentItem.category || '').toLowerCase();
+            
+            const match = title.includes(term) || category.includes(term);
             item.style.display = match ? "block" : "none";
         });
     }
@@ -221,21 +264,39 @@ class AccordionCard extends HTMLElement {
 
         items.forEach((item, index) => {
             const currentItem = this.config.items[index];
-            const isMatch =
-                !filter.condition ||
-                (filter.condition && eval(filter.condition)(currentItem));
+            const isMatch = !filter.condition || 
+                (filter.condition && new Function('item', `return ${filter.condition}`)(currentItem));
 
             item.style.display = isMatch ? "block" : "none";
         });
 
-        // Highlight active filter button
-        this.shadowRoot.querySelectorAll(".accordion-filter").forEach((button) =>
-            button.classList.remove("active")
-        );
-        const activeButton = Array.from(this.shadowRoot.querySelectorAll(".accordion-filter")).find(
-            (btn) => btn.textContent === filter.name
-        );
+        // Update active filter button
+        const filterButtons = this.shadowRoot.querySelectorAll(".accordion-filter");
+        filterButtons.forEach(button => button.classList.remove("active"));
+        
+        const activeButton = Array.from(filterButtons)
+            .find(btn => btn.textContent === filter.name);
         if (activeButton) activeButton.classList.add("active");
+    }
+
+    minimizeAll() {
+        const headers = this.shadowRoot.querySelectorAll(".accordion-header");
+        const bodies = this.shadowRoot.querySelectorAll(".accordion-body");
+        const arrows = this.shadowRoot.querySelectorAll(".arrow");
+
+        headers.forEach(header => header.classList.remove("open"));
+        bodies.forEach(body => body.classList.remove("open"));
+        arrows.forEach(arrow => arrow.classList.remove("open"));
+    }
+
+    maximizeAll() {
+        const headers = this.shadowRoot.querySelectorAll(".accordion-header");
+        const bodies = this.shadowRoot.querySelectorAll(".accordion-body");
+        const arrows = this.shadowRoot.querySelectorAll(".arrow");
+
+        headers.forEach(header => header.classList.add("open"));
+        bodies.forEach(body => body.classList.add("open"));
+        arrows.forEach(arrow => arrow.classList.add("open"));
     }
 
     toggleTab(index, alwaysOpen) {
@@ -244,9 +305,15 @@ class AccordionCard extends HTMLElement {
         const arrows = this.shadowRoot.querySelectorAll(".arrow");
 
         if (!alwaysOpen) {
-            headers.forEach((header, i) => i !== index && header.classList.remove("open"));
-            bodies.forEach((body, i) => i !== index && body.classList.remove("open"));
-            arrows.forEach((arrow, i) => i !== index && arrow.classList.remove("open"));
+            headers.forEach((header, i) => {
+                if (i !== index) header.classList.remove("open");
+            });
+            bodies.forEach((body, i) => {
+                if (i !== index) body.classList.remove("open");
+            });
+            arrows.forEach((arrow, i) => {
+                if (i !== index) arrow.classList.remove("open");
+            });
         }
 
         headers[index].classList.toggle("open");
