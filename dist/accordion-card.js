@@ -455,10 +455,100 @@ class AccordionCard extends HTMLElement {
             isScrolling = false;
         });
     }
+    async createCard(config) {
+        if (!this.cardHelpers) {
+            this.cardHelpers = await window.loadCardHelpers();
+        }
 
-    // Rest of the methods remain the same...
-    
-    // [Previous methods: createCard, applySearch, applyFilter, toggleTab, set hass, getCardSize]
+        const cardElement = await this.cardHelpers.createCardElement(config);
+        cardElement.setConfig(config);
+        if (this._hass) {
+            cardElement.hass = this._hass;
+        }
+
+        return cardElement;
+    }
+
+    applySearch(term) {
+        const items = this.shadowRoot.querySelectorAll(".accordion-item");
+        term = term.toLowerCase().trim();
+
+        items.forEach((item, index) => {
+            const currentItem = this.config.items[index];
+            const title = (currentItem.title || '').toLowerCase();
+            const category = (currentItem.category || '').toLowerCase();
+            
+            const match = title.includes(term) || category.includes(term);
+            item.style.display = match ? "block" : "none";
+        });
+    }
+
+    applyFilter(filter) {
+        const items = this.shadowRoot.querySelectorAll(".accordion-item");
+
+        items.forEach((item, index) => {
+            const currentItem = this.config.items[index];
+            let isMatch = true;
+
+            if (filter.name === 'Alle') {
+                isMatch = true;
+            } else if (filter.condition) {
+                // Vereinfachte Bedingungsprüfung
+                const condition = filter.condition.replace(/[()]/g, '').trim();
+                const [property, value] = condition.split('===').map(s => s.trim());
+                const itemValue = property.split('.')[1]; // Extrahiert 'category' aus 'item.category'
+                isMatch = currentItem[itemValue] === value.replace(/['"]/g, '');
+            }
+
+            item.style.display = isMatch ? "block" : "none";
+        });
+
+        // Update active filter button
+        const filterButtons = this.shadowRoot.querySelectorAll(".accordion-filter");
+        filterButtons.forEach(button => button.classList.remove("active"));
+        
+        const activeButton = Array.from(filterButtons)
+            .find(btn => btn.textContent === filter.name);
+        if (activeButton) activeButton.classList.add("active");
+    }
+
+    toggleTab(index, alwaysOpen) {
+        const headers = this.shadowRoot.querySelectorAll(".accordion-header");
+        const bodies = this.shadowRoot.querySelectorAll(".accordion-body");
+        const arrows = this.shadowRoot.querySelectorAll(".arrow");
+
+        if (!alwaysOpen) {
+            headers.forEach((header, i) => {
+                if (i !== index) header.classList.remove("open");
+            });
+            bodies.forEach((body, i) => {
+                if (i !== index) body.classList.remove("open");
+            });
+            arrows.forEach((arrow, i) => {
+                if (i !== index) arrow.classList.remove("open");
+            });
+        }
+
+        headers[index].classList.toggle("open");
+        bodies[index].classList.toggle("open");
+        if (arrows[index]) arrows[index].classList.toggle("open");
+    }
+
+    set hass(hass) {
+        this._hass = hass;
+        const bodies = this.shadowRoot.querySelectorAll(".accordion-body");
+        bodies.forEach((body, index) => {
+            const item = this.config.items[index];
+            if (item.card) {
+                const card = body.firstElementChild;
+                if (card) card.hass = hass;
+            }
+        });
+    }
+
+    getCardSize() {
+        return this.config.items.length || 1;
+    }
 }
 
 customElements.define("accordion-card", AccordionCard);
