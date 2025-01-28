@@ -64,8 +64,7 @@ class AccordionCard extends HTMLElement {
 
             const cardConfig = item.card;
             if (cardConfig) {
-                const card = document.createElement("hui-card-preview");
-                card.setConfig(cardConfig);
+                const card = this.createCard(cardConfig);
                 body.appendChild(card);
             }
 
@@ -79,6 +78,12 @@ class AccordionCard extends HTMLElement {
 
         this.shadowRoot.innerHTML = style;
         this.shadowRoot.appendChild(accordion);
+    }
+
+    createCard(config) {
+        const card = document.createElement("ha-card");
+        card.setConfig(config);
+        return card;
     }
 
     toggleItem(index) {
@@ -97,7 +102,7 @@ class AccordionCard extends HTMLElement {
             const index = body.dataset.index;
             const item = this.config.items[index];
             if (item.card) {
-                const card = body.querySelector("hui-card-preview");
+                const card = body.firstElementChild;
                 if (card) card.hass = hass;
             }
         });
