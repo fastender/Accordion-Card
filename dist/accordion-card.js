@@ -67,7 +67,7 @@ class AccordionCard extends HTMLElement {
             body.dataset.index = index;
 
             if (item.card) {
-                // Erstelle die Karte
+                // Asynchron die Karte erstellen
                 this.createCard(item.card).then((card) => {
                     if (card) body.appendChild(card);
                 });
@@ -92,6 +92,9 @@ class AccordionCard extends HTMLElement {
 
         const cardElement = await this.cardHelpers.createCardElement(config);
         cardElement.setConfig(config);
+        if (this._hass) {
+            cardElement.hass = this._hass;
+        }
 
         return cardElement;
     }
