@@ -2,6 +2,29 @@ class AccordionCard extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({ mode: "open" });
+        // Add translations
+        this.translations = {
+            en: {
+                search: "Search...",
+                all: "All"
+            },
+            de: {
+                search: "Suchen...",
+                all: "Alle"
+            },
+            fr: {
+                search: "Rechercher...",
+                all: "Tout"
+            },
+            es: {
+                search: "Buscar...",
+                all: "Todo"
+            },
+            it: {
+                search: "Cerca...",
+                all: "Tutto"
+            }
+        };
     }
 
     async setConfig(config) {
@@ -9,7 +32,10 @@ class AccordionCard extends HTMLElement {
             throw new Error("You need to define an array of items.");
         }
 
-        this.config = config;
+        this.config = {
+            ...config,
+            language: config.language || 'en' // Default language
+        };
         this.cardHelpers = await window.loadCardHelpers();
         this.render();
     }
@@ -57,11 +83,16 @@ class AccordionCard extends HTMLElement {
                     background: ${filter_button_color};
                     color: var(--text-primary-color);
                     font-size: inherit;
-                    transition: background 0.3s ease, color 0.3s ease;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 }
                 .accordion-filter.active {
                     background: var(--accent-color);
                     color: var(--text-primary-color);
+                    transform: scale(1.02);
+                }
+                .accordion-filter:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                 }
                 .accordion-search {
                     padding: 10px;
@@ -76,9 +107,16 @@ class AccordionCard extends HTMLElement {
                     font-size: ${search_font_size};
                     background: var(--card-background-color);
                     color: var(--primary-text-color);
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                .accordion-search input:focus {
+                    border-color: var(--accent-color);
+                    box-shadow: 0 0 0 2px rgba(var(--accent-color-rgb), 0.1);
+                    outline: none;
                 }
                 .accordion-item {
                     border-bottom: 1px solid var(--divider-color);
+                    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 }
                 .accordion-header {
                     background-color: ${header_color_closed};
@@ -90,7 +128,10 @@ class AccordionCard extends HTMLElement {
                     cursor: pointer;
                     color: ${title_color};
                     font-size: ${title_size};
-                    transition: background-color 0.3s ease;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                .accordion-header:hover {
+                    background-color: rgba(var(--accent-color-rgb), 0.05);
                 }
                 .accordion-header.open {
                     background-color: ${header_color_open};
@@ -100,11 +141,11 @@ class AccordionCard extends HTMLElement {
                     max-height: 0;
                     opacity: 0;
                     overflow: hidden;
-                    transition: max-height 0.3s ease, opacity 0.3s ease;
+                    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
                 }
                 .accordion-body.open {
                     background-color: ${background_open};
-                    max-height: 500px;
+                    max-height: 1000px;
                     opacity: 1;
                 }
                 .header-content {
@@ -119,7 +160,7 @@ class AccordionCard extends HTMLElement {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    transition: transform 0.3s ease;
+                    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
                     margin-left: 8px;
                     color: var(--primary-text-color);
                     opacity: 0.7;
@@ -131,11 +172,18 @@ class AccordionCard extends HTMLElement {
                     width: 18px;
                     height: 18px;
                 }
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(-10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .fade-in {
+                    animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                }
             </style>
         `;
 
         const container = document.createElement("div");
-        container.className = "accordion";
+        container.className = "accordion fade-in";
 
         // Add search field if enabled
         if (show_search) {
@@ -144,7 +192,7 @@ class AccordionCard extends HTMLElement {
 
             const searchInput = document.createElement("input");
             searchInput.type = "text";
-            searchInput.placeholder = "Search...";
+            searchInput.placeholder = this.translations[this.config.language]?.search || this.translations.en.search;
             searchInput.addEventListener("input", (e) => this.applySearch(e.target.value));
 
             searchBar.appendChild(searchInput);
@@ -156,12 +204,17 @@ class AccordionCard extends HTMLElement {
             const filterBar = document.createElement("div");
             filterBar.className = "accordion-filters";
 
+            // Add "All" filter if it doesn't exist
+            if (!this.config.filters.some(f => f.name === this.translations[this.config.language]?.all)) {
+                const allFilter = {
+                    name: this.translations[this.config.language]?.all || this.translations.en.all,
+                    condition: null
+                };
+                filterBar.appendChild(this.createFilterButton(allFilter));
+            }
+
             this.config.filters.forEach((filter) => {
-                const filterButton = document.createElement("button");
-                filterButton.className = "accordion-filter";
-                filterButton.textContent = filter.name;
-                filterButton.addEventListener("click", () => this.applyFilter(filter));
-                filterBar.appendChild(filterButton);
+                filterBar.appendChild(this.createFilterButton(filter));
             });
 
             container.appendChild(filterBar);
@@ -171,6 +224,7 @@ class AccordionCard extends HTMLElement {
         this.config.items.forEach((item, index) => {
             const accordionItem = document.createElement("div");
             accordionItem.className = "accordion-item";
+            accordionItem.setAttribute('data-category', item.category || '');
 
             const header = document.createElement("div");
             header.className = "accordion-header";
@@ -182,7 +236,6 @@ class AccordionCard extends HTMLElement {
             title.textContent = item.title || `Item ${index + 1}`;
             headerContent.appendChild(title);
 
-            // Add arrow icon if enabled
             if (show_arrow) {
                 const arrow = document.createElement("div");
                 arrow.className = "arrow";
@@ -196,7 +249,6 @@ class AccordionCard extends HTMLElement {
             const body = document.createElement("div");
             body.className = "accordion-body";
 
-            // Load the card
             if (item.card) {
                 this.createCard(item.card).then((card) => {
                     if (card) body.appendChild(card);
@@ -211,7 +263,7 @@ class AccordionCard extends HTMLElement {
         this.shadowRoot.innerHTML = style;
         this.shadowRoot.appendChild(container);
 
-        // If minimize/maximize is enabled, check current state
+        // Handle initial state
         if (this.config.allow_minimize || this.config.allow_maximize) {
             const allOpen = Array.from(this.shadowRoot.querySelectorAll('.accordion-body'))
                 .every(body => body.classList.contains('open'));
@@ -224,6 +276,13 @@ class AccordionCard extends HTMLElement {
         }
     }
 
+    createFilterButton(filter) {
+        const filterButton = document.createElement("button");
+        filterButton.className = "accordion-filter";
+        filterButton.textContent = filter.name;
+        filterButton.addEventListener("click", () => this.applyFilter(filter));
+        return filterButton;
+    }
     async createCard(config) {
         if (!this.cardHelpers) {
             this.cardHelpers = await window.loadCardHelpers();
