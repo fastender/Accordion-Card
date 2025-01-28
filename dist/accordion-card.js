@@ -228,11 +228,13 @@ class AccordionCard extends HTMLElement {
 
     applySearch(term) {
         const items = this.shadowRoot.querySelectorAll(".accordion-item");
+        term = term.toLowerCase();
+
         items.forEach((item, index) => {
             const currentItem = this.config.items[index];
             const match =
-                currentItem.title.toLowerCase().includes(term.toLowerCase()) ||
-                (currentItem.category && currentItem.category.toLowerCase().includes(term.toLowerCase()));
+                currentItem.title.toLowerCase().includes(term) ||
+                (currentItem.category && currentItem.category.toLowerCase().includes(term));
 
             item.style.display = match ? "block" : "none";
         });
@@ -244,7 +246,7 @@ class AccordionCard extends HTMLElement {
         items.forEach((item, index) => {
             const currentItem = this.config.items[index];
             const isMatch =
-                !filter.condition ||
+                filter.name === "Alle" ||
                 (filter.condition && eval(filter.condition)(currentItem));
 
             item.style.display = isMatch ? "block" : "none";
@@ -254,30 +256,37 @@ class AccordionCard extends HTMLElement {
     toggleTab(index, alwaysOpen) {
         const headers = this.shadowRoot.querySelectorAll(".accordion-header");
         const bodies = this.shadowRoot.querySelectorAll(".accordion-body");
+        const arrows = this.shadowRoot.querySelectorAll(".arrow");
 
         if (!alwaysOpen) {
             headers.forEach((header, i) => i !== index && header.classList.remove("open"));
             bodies.forEach((body, i) => i !== index && body.classList.remove("open"));
+            arrows.forEach((arrow, i) => i !== index && arrow.classList.remove("open"));
         }
 
         headers[index].classList.toggle("open");
         bodies[index].classList.toggle("open");
+        if (arrows[index]) arrows[index].classList.toggle("open");
     }
 
     minimizeAllTabs() {
         const headers = this.shadowRoot.querySelectorAll(".accordion-header");
         const bodies = this.shadowRoot.querySelectorAll(".accordion-body");
+        const arrows = this.shadowRoot.querySelectorAll(".arrow");
 
         headers.forEach((header) => header.classList.remove("open"));
         bodies.forEach((body) => body.classList.remove("open"));
+        arrows.forEach((arrow) => arrow.classList.remove("open"));
     }
 
     maximizeAllTabs() {
         const headers = this.shadowRoot.querySelectorAll(".accordion-header");
         const bodies = this.shadowRoot.querySelectorAll(".accordion-body");
+        const arrows = this.shadowRoot.querySelectorAll(".arrow");
 
         headers.forEach((header) => header.classList.add("open"));
         bodies.forEach((body) => body.classList.add("open"));
+        arrows.forEach((arrow) => arrow.classList.add("open"));
     }
 
     set hass(hass) {
