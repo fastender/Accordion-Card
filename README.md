@@ -1,204 +1,134 @@
-# **Accordion Card for Home Assistant**
+# Accordion Card for Home Assistant
 
-The `accordion-card` is a custom Lovelace card for Home Assistant that allows you to display content in an accordion-style layout. It supports filters, global search, tab minimize/maximize functionality, and customizable styling.
+A custom card that creates an accordion-style expandable/collapsible interface for Home Assistant dashboards. Perfect for organizing multiple cards or information in a clean, structured way.
 
----
+## Installation
 
-## **Installation**
-
-1. Download the file `accordion-card.js` and save it to the `config/www` directory in your Home Assistant.
-2. Add the card as a resource in your Lovelace configuration:
+1. Download `accordion-card.js`
+2. Add the file to your `www` folder in Home Assistant
+3. Add the following to your dashboard resources:
    ```yaml
-   resources:
-     - url: /local/accordion-card.js
-       type: module
+   url: /local/accordion-card.js
+   type: module
    ```
-3. Restart Home Assistant.
 
----
+## Usage
 
-## **Usage**
+Add the card to your dashboard with the type `custom:accordion-card`:
 
-Below is an example of how to configure the card in your Lovelace dashboard:
-
-### **Basic Configuration**
 ```yaml
 type: custom:accordion-card
-items:
-  - title: Living Room Light
-    category: lights
-    card:
-      type: entities
-      entities:
-        - entity: light.living_room
-  - title: Kitchen Blind
-    category: cover
-    card:
-      type: entities
-      entities:
-        - entity: cover.kitchen_blind
 ```
 
----
+## Configuration Parameters
 
-## **Options**
+### Basic Configuration
 
-### **Main Options**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| items | array | required | Array of accordion items to display |
+| language | string | 'en' | Interface language ('en', 'de', 'fr', 'es', 'it') |
+| show_expand_controls | boolean | false | Show expand/collapse all buttons |
 
-| Option            | Description                                                                         | Type      | Default    |
-|-------------------|-------------------------------------------------------------------------------------|-----------|------------|
-| `items`           | List of tabs with cards. Each tab can display a custom Lovelace card.              | `array`   | **Required** |
-| `filters`         | Defines a filter bar to filter tabs by category.                                   | `array`   | -          |
-| `show_search`     | Displays a search bar to filter tabs by title or category.                         | `boolean` | `false`    |
-| `allow_minimize`  | Adds a button to minimize all tabs.                                                | `boolean` | `false`    |
-| `allow_maximize`  | Adds a button to maximize all tabs.                                                | `boolean` | `false`    |
+### Visual Customization
 
----
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| filter_font_size | string | '14px' | Font size for filter buttons |
+| filter_background_color | string | var(--primary-background-color) | Background color for filter section |
+| filter_button_color | string | var(--secondary-background-color) | Background color for filter buttons |
+| search_font_size | string | '14px' | Font size for search input |
+| search_background_color | string | var(--primary-background-color) | Background color for search section |
+| height | string | '48px' | Height of accordion headers |
+| header_color_open | string | var(--primary-background-color) | Background color for open accordion headers |
+| header_color_closed | string | var(--primary-background-color) | Background color for closed accordion headers |
+| background_open | string | var(--card-background-color) | Background color for open accordion content |
+| background_closed | string | var(--card-background-color) | Background color for closed accordion content |
+| title_color | string | var(--primary-text-color) | Color for accordion titles |
+| title_size | string | '16px' | Font size for accordion titles |
 
-### **Styling Options**
+### Functional Options
 
-| Option                     | Description                                                   | Type      | Default                           |
-|----------------------------|---------------------------------------------------------------|-----------|-----------------------------------|
-| `filter_font_size`          | Font size for the filter bar buttons.                        | `string`  | `14px`                            |
-| `filter_background_color`   | Background color of the filter bar.                          | `string`  | `var(--primary-background-color)` |
-| `filter_button_color`       | Background color of filter buttons.                          | `string`  | `var(--secondary-background-color)` |
-| `search_font_size`          | Font size for the search bar text.                           | `string`  | `14px`                            |
-| `search_background_color`   | Background color of the search bar.                          | `string`  | `var(--primary-background-color)` |
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| show_arrow | boolean | true | Show/hide expand arrows |
+| show_search | boolean | false | Enable search functionality |
+| always_open | boolean | false | Allow multiple sections to be open simultaneously |
+| allow_minimize | boolean | false | Allow minimizing all sections |
+| allow_maximize | boolean | false | Allow maximizing all sections |
 
----
+### Filter Configuration
 
-## **Tab Configuration (`items`)**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| filters | array | Array of filter objects |
+| filters[].name | string | Display name for the filter |
+| filters[].condition | string | Filter condition (e.g., "item.category === 'lights'") |
 
-Each tab is defined as an object inside the `items` array. Below is the structure:
+### Item Configuration
 
-| Option       | Description                                                        | Type      | Required |
-|--------------|--------------------------------------------------------------------|-----------|----------|
-| `title`      | The title of the tab displayed in the header.                      | `string`  | Yes      |
-| `category`   | The category of the tab for filtering purposes.                    | `string`  | No       |
-| `card`       | A Lovelace card configuration to display inside the tab.           | `object`  | Yes      |
+Each item in the `items` array can have the following properties:
 
-### **Example**
-```yaml
-type: custom:accordion-card
-items:
-  - title: Bedroom Light
-    category: lights
-    card:
-      type: entities
-      entities:
-        - entity: light.bedroom
-  - title: Office Blind
-    category: cover
-    card:
-      type: entities
-      entities:
-        - entity: cover.office_blind
-```
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| title | string | Title of the accordion section |
+| category | string | Category for filtering |
+| card | object | Home Assistant card configuration to be displayed |
 
----
+## Example Configuration
 
-## **Filter Configuration**
-
-Filters allow you to display only tabs that belong to a specific category. Define them in the `filters` array.
-
-| Option     | Description                                         | Type      | Required |
-|------------|-----------------------------------------------------|-----------|----------|
-| `name`     | Name of the filter button displayed in the filter bar. | `string`  | Yes      |
-| `category` | The category this filter applies to (e.g., `lights`, `cover`). | `string`  | Yes      |
-
-### **Example**
-```yaml
-type: custom:accordion-card
-filters:
-  - name: All
-    category: all
-  - name: Lights
-    category: lights
-  - name: Covers
-    category: cover
-items:
-  - title: Living Room Light
-    category: lights
-    card:
-      type: entities
-      entities:
-        - entity: light.living_room
-  - title: Kitchen Blind
-    category: cover
-    card:
-      type: entities
-      entities:
-        - entity: cover.kitchen_blind
-```
-
----
-
-## **Global Search**
-
-Enable the global search functionality by setting `show_search: true`. The search bar filters tabs based on their title or category.
-
-### **Example**
 ```yaml
 type: custom:accordion-card
 show_search: true
+show_expand_controls: true
+filter_font_size: '16px'
+title_size: '18px'
+filters:
+  - name: "All"
+    condition: null
+  - name: "Lights"
+    condition: "item.category === 'lights'"
+  - name: "Climate"
+    condition: "item.category === 'climate'"
 items:
-  - title: Living Room Light
-    category: lights
+  - title: "Living Room Lights"
+    category: "lights"
     card:
-      type: entities
-      entities:
-        - entity: light.living_room
-  - title: Kitchen Blind
-    category: cover
+      type: light
+      entity: light.living_room
+  - title: "Kitchen Temperature"
+    category: "climate"
     card:
-      type: entities
-      entities:
-        - entity: cover.kitchen_blind
+      type: thermostat
+      entity: climate.kitchen
 ```
 
----
+## Available Translations
 
-## **Buttons for Minimize and Maximize**
+The card automatically supports the following languages:
+- English (en)
+- German (de)
+- French (fr)
+- Spanish (es)
+- Italian (it)
 
-Add buttons to minimize or maximize all tabs by enabling `allow_minimize` and `allow_maximize`.
+Translation applies to search placeholder and "All" filter text.
 
-### **Example**
-```yaml
-type: custom:accordion-card
-allow_minimize: true
-allow_maximize: true
-items:
-  - title: Bedroom Light
-    category: lights
-    card:
-      type: entities
-      entities:
-        - entity: light.bedroom
-  - title: Office Blind
-    category: cover
-    card:
-      type: entities
-      entities:
-        - entity: cover.office_blind
-```
+## Styling Notes
 
----
+- The card uses Home Assistant's CSS variables for consistent theming
+- All color parameters accept CSS color values or Home Assistant CSS variables
+- Backdrop filters are used for glass-like effects on filters and controls
 
-## **Translations**
+## Browser Compatibility
 
-The card supports automatic translations for predefined texts based on the Home Assistant language setting. Supported translations:
+- Supports all modern browsers
+- Uses standard web components
+- Requires browsers with CSS Grid and Flexbox support
+- Best viewed in browsers that support backdrop-filter
 
-- **English**
-- **German**
+## Known Limitations
 
----
-
-## **Features**
-
-- Accordion-style tabs for Lovelace cards.
-- Global search to filter tabs dynamically.
-- Filters to display specific categories of tabs.
-- Minimize and maximize all tabs.
-- Fully customizable styling for the filter bar and search bar.
-- Supports translations for predefined texts.
-
+- Internet Explorer is not supported
+- Some older browsers might not display backdrop filters
+- Performance may vary with large numbers of nested cards
