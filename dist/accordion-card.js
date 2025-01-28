@@ -33,6 +33,7 @@ class AccordionCard extends HTMLElement {
             background_closed = "var(--card-background-color)",
             title_color = "var(--primary-text-color)",
             title_size = "16px",
+            show_arrow = true,
             show_search = false,
             allow_minimize = false,
             allow_maximize = false,
@@ -109,6 +110,12 @@ class AccordionCard extends HTMLElement {
                     max-height: 500px;
                     opacity: 1;
                 }
+                .arrow {
+                    transition: transform 0.3s ease;
+                }
+                .arrow.open {
+                    transform: rotate(90deg);
+                }
             </style>
         `;
 
@@ -179,6 +186,14 @@ class AccordionCard extends HTMLElement {
             title.textContent = item.title || `Item ${index + 1}`;
             header.appendChild(title);
 
+            // Add arrow icon if enabled
+            if (show_arrow) {
+                const arrow = document.createElement("span");
+                arrow.className = "arrow";
+                arrow.textContent = ">";
+                header.appendChild(arrow);
+            }
+
             const body = document.createElement("div");
             body.className = "accordion-body";
 
@@ -228,8 +243,10 @@ class AccordionCard extends HTMLElement {
 
         items.forEach((item, index) => {
             const currentItem = this.config.items[index];
+            const isMatch =
+                !filter.condition ||
+                (filter.condition && eval(filter.condition)(currentItem));
 
-            const isMatch = filter.name === "Alle" || (filter.condition && eval(filter.condition)(currentItem));
             item.style.display = isMatch ? "block" : "none";
         });
     }
