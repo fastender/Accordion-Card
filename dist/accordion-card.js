@@ -257,8 +257,17 @@ class AccordionCard extends HTMLElement {
 
         items.forEach((item, index) => {
             const currentItem = this.config.items[index];
-            const isMatch = !filter.condition || 
-                (filter.condition && new Function('item', `return ${filter.condition}`)(currentItem));
+            let isMatch = true;
+
+            if (filter.name === 'Alle') {
+                isMatch = true;
+            } else if (filter.condition) {
+                // Vereinfachte Bedingungsprüfung
+                const condition = filter.condition.replace(/[()]/g, '').trim();
+                const [property, value] = condition.split('===').map(s => s.trim());
+                const itemValue = property.split('.')[1]; // Extrahiert 'category' aus 'item.category'
+                isMatch = currentItem[itemValue] === value.replace(/['"]/g, '');
+            }
 
             item.style.display = isMatch ? "block" : "none";
         });
