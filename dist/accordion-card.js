@@ -158,14 +158,15 @@ class AccordionCard extends HTMLElement {
         const items = this.shadowRoot.querySelectorAll(".accordion-item");
         items.forEach((item, index) => {
             const currentItem = this.config.items[index];
-            const condition = filter.condition || (() => true); // Default: Zeigt alles an
-            if (condition(currentItem)) {
+    
+            // Wenn die Kategorie "all" ist oder die Kategorie mit dem Filter übereinstimmt, zeigen wir das Item an
+            if (filter.category === "all" || currentItem.category === filter.category) {
                 item.style.display = "block";
             } else {
                 item.style.display = "none";
             }
         });
-
+    
         // Setze den aktiven Zustand für die Filterbuttons
         this.shadowRoot.querySelectorAll(".accordion-filter").forEach((btn) => {
             btn.classList.remove("active");
