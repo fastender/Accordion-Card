@@ -32,8 +32,6 @@ class AccordionCard extends HTMLElement {
             title_size = "16px",
             show_arrow = true,
             show_search = false,
-            allow_minimize = false,
-            allow_maximize = false,
             always_open = false,
         } = this.config;
 
@@ -70,6 +68,7 @@ class AccordionCard extends HTMLElement {
                     background-color: ${search_background_color};
                 }
                 .accordion-search input {
+                    box-sizing: border-box;
                     width: 100%;
                     padding: 8px;
                     border: 1px solid var(--divider-color);
@@ -87,7 +86,7 @@ class AccordionCard extends HTMLElement {
                     display: flex;
                     align-items: center;
                     justify-content: space-between;
-                    padding: 0 10px;
+                    padding: 0 15px;
                     cursor: pointer;
                     color: ${title_color};
                     font-size: ${title_size};
@@ -108,22 +107,29 @@ class AccordionCard extends HTMLElement {
                     max-height: 500px;
                     opacity: 1;
                 }
+                .header-content {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    width: 100%;
+                }
                 .arrow {
+                    width: 24px;
+                    height: 24px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                     transition: transform 0.3s ease;
                     margin-left: 8px;
+                    color: var(--primary-text-color);
+                    opacity: 0.7;
                 }
                 .arrow.open {
                     transform: rotate(90deg);
                 }
-                .controls {
-                    display: flex;
-                    gap: 8px;
-                    align-items: center;
-                }
-                .control-button {
-                    cursor: pointer;
-                    padding: 4px;
-                    color: var(--primary-text-color);
+                .arrow svg {
+                    width: 18px;
+                    height: 18px;
                 }
             </style>
         `;
@@ -168,49 +174,24 @@ class AccordionCard extends HTMLElement {
 
             const header = document.createElement("div");
             header.className = "accordion-header";
-            header.addEventListener("click", () => this.toggleTab(index, always_open));
+
+            const headerContent = document.createElement("div");
+            headerContent.className = "header-content";
 
             const title = document.createElement("span");
             title.textContent = item.title || `Item ${index + 1}`;
-            header.appendChild(title);
-
-            const controls = document.createElement("div");
-            controls.className = "controls";
-
-            // Add minimize/maximize buttons if enabled
-            if (allow_minimize || allow_maximize) {
-                if (allow_minimize) {
-                    const minimizeBtn = document.createElement("span");
-                    minimizeBtn.className = "control-button minimize";
-                    minimizeBtn.textContent = "−";
-                    minimizeBtn.addEventListener("click", (e) => {
-                        e.stopPropagation();
-                        this.minimizeAll();
-                    });
-                    controls.appendChild(minimizeBtn);
-                }
-
-                if (allow_maximize) {
-                    const maximizeBtn = document.createElement("span");
-                    maximizeBtn.className = "control-button maximize";
-                    maximizeBtn.textContent = "+";
-                    maximizeBtn.addEventListener("click", (e) => {
-                        e.stopPropagation();
-                        this.maximizeAll();
-                    });
-                    controls.appendChild(maximizeBtn);
-                }
-            }
+            headerContent.appendChild(title);
 
             // Add arrow icon if enabled
             if (show_arrow) {
-                const arrow = document.createElement("span");
+                const arrow = document.createElement("div");
                 arrow.className = "arrow";
-                arrow.textContent = ">";
-                controls.appendChild(arrow);
+                arrow.innerHTML = '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"></path></svg>';
+                headerContent.appendChild(arrow);
             }
 
-            header.appendChild(controls);
+            header.appendChild(headerContent);
+            header.addEventListener("click", () => this.toggleTab(index, always_open));
 
             const body = document.createElement("div");
             body.className = "accordion-body";
@@ -229,6 +210,18 @@ class AccordionCard extends HTMLElement {
 
         this.shadowRoot.innerHTML = style;
         this.shadowRoot.appendChild(container);
+
+        // If minimize/maximize is enabled, check current state
+        if (this.config.allow_minimize || this.config.allow_maximize) {
+            const allOpen = Array.from(this.shadowRoot.querySelectorAll('.accordion-body'))
+                .every(body => body.classList.contains('open'));
+            
+            if (allOpen && this.config.allow_minimize) {
+                this.minimizeAll();
+            } else if (!allOpen && this.config.allow_maximize) {
+                this.maximizeAll();
+            }
+        }
     }
 
     async createCard(config) {
@@ -277,26 +270,6 @@ class AccordionCard extends HTMLElement {
         const activeButton = Array.from(filterButtons)
             .find(btn => btn.textContent === filter.name);
         if (activeButton) activeButton.classList.add("active");
-    }
-
-    minimizeAll() {
-        const headers = this.shadowRoot.querySelectorAll(".accordion-header");
-        const bodies = this.shadowRoot.querySelectorAll(".accordion-body");
-        const arrows = this.shadowRoot.querySelectorAll(".arrow");
-
-        headers.forEach(header => header.classList.remove("open"));
-        bodies.forEach(body => body.classList.remove("open"));
-        arrows.forEach(arrow => arrow.classList.remove("open"));
-    }
-
-    maximizeAll() {
-        const headers = this.shadowRoot.querySelectorAll(".accordion-header");
-        const bodies = this.shadowRoot.querySelectorAll(".accordion-body");
-        const arrows = this.shadowRoot.querySelectorAll(".arrow");
-
-        headers.forEach(header => header.classList.add("open"));
-        bodies.forEach(body => body.classList.add("open"));
-        arrows.forEach(arrow => arrow.classList.add("open"));
     }
 
     toggleTab(index, alwaysOpen) {
