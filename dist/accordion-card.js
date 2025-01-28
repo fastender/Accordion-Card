@@ -20,6 +20,12 @@ class AccordionCard extends HTMLElement {
     render() {
         if (!this.config) return;
 
+        const animationType = this.config.animation || "slide"; // Standardanimation
+        const headerColorClosed = this.config.header_color_closed || "var(--primary-background-color)";
+        const headerColorOpen = this.config.header_color_open || "var(--accent-color)";
+        const backgroundClosed = this.config.background_closed || "var(--primary-background-color)";
+        const backgroundOpen = this.config.background_open || "var(--secondary-background-color)";
+
         const style = `
             <style>
                 .accordion {
@@ -32,23 +38,54 @@ class AccordionCard extends HTMLElement {
                     border-bottom: 1px solid var(--divider-color);
                 }
                 .accordion-header {
-                    background-color: var(--primary-background-color);
+                    background-color: ${headerColorClosed};
                     padding: 10px;
                     cursor: pointer;
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
+                    transition: background-color 0.3s ease;
+                }
+                .accordion-header.active {
+                    background-color: ${headerColorOpen};
                 }
                 .accordion-header:hover {
-                    background-color: var(--secondary-background-color);
+                    filter: brightness(1.1);
                 }
                 .accordion-body {
-                    padding: 10px;
-                    display: none;
-                    background-color: var(--primary-background-color);
+                    max-height: 0;
+                    opacity: 0;
+                    overflow: hidden;
+                    transform: translateY(-10px);
+                    background-color: ${backgroundClosed};
+                    transition: max-height 0.3s ease, opacity 0.3s ease, transform 0.3s ease, background-color 0.3s ease;
                 }
                 .accordion-body.active {
-                    display: block;
+                    max-height: 500px; /* Oder eine ausreichende Höhe */
+                    opacity: 1;
+                    transform: translateY(0);
+                    background-color: ${backgroundOpen};
+                }
+
+                /* Spezifische Animationen */
+                .accordion-body.fade {
+                    transition: opacity 0.3s ease;
+                }
+
+                .accordion-body.bounce {
+                    animation: bounce 0.3s ease;
+                }
+
+                @keyframes bounce {
+                    0% {
+                        transform: scaleY(0.9);
+                    }
+                    50% {
+                        transform: scaleY(1.05);
+                    }
+                    100% {
+                        transform: scaleY(1);
+                    }
                 }
             </style>
         `;
@@ -63,7 +100,7 @@ class AccordionCard extends HTMLElement {
             header.addEventListener("click", () => this.toggleItem(index));
 
             const body = document.createElement("div");
-            body.className = "accordion-body";
+            body.className = `accordion-body ${animationType}`;
             body.dataset.index = index;
 
             if (item.card) {
@@ -101,10 +138,13 @@ class AccordionCard extends HTMLElement {
 
     toggleItem(index) {
         const body = this.shadowRoot.querySelector(`.accordion-body[data-index="${index}"]`);
+        const header = this.shadowRoot.querySelectorAll(".accordion-header")[index];
         const isActive = body.classList.contains("active");
         this.shadowRoot.querySelectorAll(".accordion-body").forEach((el) => el.classList.remove("active"));
+        this.shadowRoot.querySelectorAll(".accordion-header").forEach((el) => el.classList.remove("active"));
         if (!isActive) {
             body.classList.add("active");
+            header.classList.add("active");
         }
     }
 
