@@ -1,78 +1,111 @@
-
-
 class AccordionCard extends HTMLElement {
-  constructor() {
-    super();
-    const shadow = this.attachShadow({ mode: 'open' });
-    shadow.innerHTML = `
-      <style>
-        :host {
-          --card-background: var(--card-background-color, #fff);
-          --card-border-radius: 8px;
-          --card-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-          display: block;
+    constructor() {
+        super();
+        this.attachShadow({ mode: "open" });
+    }
+
+    setConfig(config) {
+        if (!config.items || !Array.isArray(config.items)) {
+            throw new Error("You need to define an array of items.");
         }
 
-        .accordion {
-          margin: 16px;
-          border-radius: var(--card-border-radius);
-          box-shadow: var(--card-shadow);
-          overflow: hidden;
-          background: var(--card-background);
+        this.config = config;
+        this.render();
+    }
+
+    render() {
+        if (!this.config) return;
+
+        const style = `
+            <style>
+                .accordion {
+                    font-family: Arial, sans-serif;
+                    border: 1px solid var(--divider-color);
+                    border-radius: 6px;
+                    overflow: hidden;
+                }
+                .accordion-item {
+                    border-bottom: 1px solid var(--divider-color);
+                }
+                .accordion-header {
+                    background-color: var(--primary-background-color);
+                    padding: 10px;
+                    cursor: pointer;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                .accordion-header:hover {
+                    background-color: var(--secondary-background-color);
+                }
+                .accordion-body {
+                    padding: 10px;
+                    display: none;
+                    background-color: var(--primary-background-color);
+                }
+                .accordion-body.active {
+                    display: block;
+                }
+            </style>
+        `;
+
+        const accordion = document.createElement("div");
+        accordion.className = "accordion";
+
+        this.config.items.forEach((item, index) => {
+            const header = document.createElement("div");
+            header.className = "accordion-header";
+            header.textContent = item.title || `Item ${index + 1}`;
+            header.addEventListener("click", () => this.toggleItem(index));
+
+            const body = document.createElement("div");
+            body.className = "accordion-body";
+            body.dataset.index = index;
+
+            const cardConfig = item.card;
+            if (cardConfig) {
+                const card = document.createElement("hui-card-preview");
+                card.setConfig(cardConfig);
+                body.appendChild(card);
+            }
+
+            const itemContainer = document.createElement("div");
+            itemContainer.className = "accordion-item";
+            itemContainer.appendChild(header);
+            itemContainer.appendChild(body);
+
+            accordion.appendChild(itemContainer);
+        });
+
+        this.shadowRoot.innerHTML = style;
+        this.shadowRoot.appendChild(accordion);
+    }
+
+    toggleItem(index) {
+        const body = this.shadowRoot.querySelector(`.accordion-body[data-index="${index}"]`);
+        const isActive = body.classList.contains("active");
+        this.shadowRoot.querySelectorAll(".accordion-body").forEach((el) => el.classList.remove("active"));
+        if (!isActive) {
+            body.classList.add("active");
         }
+    }
 
-        .accordion-header {
-          padding: 16px;
-          font-size: 1.25rem;
-          font-weight: bold;
-          cursor: pointer;
-          background: var(--header-background-color, #f9f9f9);
-        }
+    set hass(hass) {
+        this._hass = hass;
+        const bodies = this.shadowRoot.querySelectorAll(".accordion-body");
+        bodies.forEach((body) => {
+            const index = body.dataset.index;
+            const item = this.config.items[index];
+            if (item.card) {
+                const card = body.querySelector("hui-card-preview");
+                if (card) card.hass = hass;
+            }
+        });
+    }
 
-        .accordion-content {
-          overflow: hidden;
-          max-height: 0;
-          transition: max-height 0.3s ease;
-          padding: 0;
-          background: var(--content-background-color, #fafafa);
-        }
-
-        .accordion.open .accordion-content {
-          padding: 16px;
-        }
-
-        .card-container {
-          padding: 0;
-        }
-
-        ::slotted(*) {
-          margin-bottom: 16px;
-        }
-      </style>
-      <div class="accordion">
-        <div class="accordion-header">${this.getAttribute('title')}</div>
-        <div class="accordion-content">
-          <div class="card-container">
-            <slot></slot>
-          </div>
-        </div>
-      </div>
-    `;
-
-    const header = shadow.querySelector('.accordion-header');
-    const accordion = shadow.querySelector('.accordion');
-    const content = shadow.querySelector('.accordion-content');
-
-    header.addEventListener('click', () => {
-      accordion.classList.toggle('open');
-      if (accordion.classList.contains('open')) {
-        const scrollHeight = content.scrollHeight;
-        content.style.maxHeight = `${scrollHeight}px`;
-      } else {
-        content.style.maxHeight = '0';
-      }
-    });
-  }
+    getCardSize() {
+        return this.config.items.length || 1;
+    }
 }
 
-customElements.define('accordion-card', AccordionCard);
+customElements.define("accordion-card", AccordionCard);
