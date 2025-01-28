@@ -20,17 +20,6 @@ class AccordionCard extends HTMLElement {
     render() {
         if (!this.config) return;
 
-        const animationType = this.config.animation || "slide"; // Standardanimation
-        const transitionEffect = this.config.transition_effect || "none"; // Übergangseffekt: none, swipe, zoom
-        const headerColorClosed = this.config.header_color_closed || "var(--primary-background-color)";
-        const headerColorOpen = this.config.header_color_open || "var(--accent-color)";
-        const backgroundClosed = this.config.background_closed || "var(--primary-background-color)";
-        const backgroundOpen = this.config.background_open || "var(--secondary-background-color)";
-        const titleColor = this.config.title_color || "#000000"; // Titel-Farbe
-        const titleSize = this.config.title_size || "16px"; // Titel-Größe
-        const tabHeight = this.config.height || "48px"; // Höhe der Tabs
-        const alwaysOpen = this.config.always_open || false; // Standardmäßig geschlossen
-
         const style = `
             <style>
                 .accordion {
@@ -39,94 +28,95 @@ class AccordionCard extends HTMLElement {
                     border-radius: 6px;
                     overflow: hidden;
                 }
+                .accordion-filters {
+                    display: flex;
+                    gap: 10px;
+                    padding: 10px;
+                    margin-bottom: 10px;
+                    background-color: var(--primary-background-color);
+                }
+                .accordion-filter {
+                    cursor: pointer;
+                    padding: 5px 15px;
+                    border: 1px solid var(--divider-color);
+                    border-radius: 4px;
+                    background: var(--secondary-background-color);
+                    color: var(--text-primary-color);
+                    font-size: 14px;
+                    transition: background 0.3s ease, color 0.3s ease;
+                }
+                .accordion-filter.active {
+                    background: var(--accent-color);
+                    color: var(--text-primary-color);
+                }
                 .accordion-item {
                     border-bottom: 1px solid var(--divider-color);
                 }
                 .accordion-header {
-                    background-color: ${headerColorClosed};
-                    height: ${tabHeight};
-                    padding: 0 10px;
+                    background-color: var(--primary-background-color);
+                    padding: 10px;
                     cursor: pointer;
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    transition: background-color 0.3s ease, height 0.3s ease;
+                    transition: background-color 0.3s ease;
                 }
                 .accordion-header.active {
-                    background-color: ${headerColorOpen};
+                    background-color: var(--accent-color);
                 }
                 .accordion-header:hover {
                     filter: brightness(1.1);
                 }
                 .accordion-title {
-                    color: ${titleColor};
-                    font-size: ${titleSize};
                     margin: 0;
                     flex-grow: 1;
                     text-align: left;
-                    line-height: ${tabHeight};
-                }
-                .accordion-icon {
-                    display: inline-block;
-                    transform: rotate(0deg);
-                    transition: transform 0.3s ease;
-                }
-                .accordion-icon.active {
-                    transform: rotate(180deg);
                 }
                 .accordion-body {
                     max-height: 0;
                     opacity: 0;
                     overflow: hidden;
-                    background-color: ${backgroundClosed};
-                    transform: scale(1);
+                    background-color: var(--primary-background-color);
                     transition: max-height 0.3s ease, opacity 0.3s ease, background-color 0.3s ease;
                 }
                 .accordion-body.active {
                     max-height: 500px;
                     opacity: 1;
-                    background-color: ${backgroundOpen};
-                }
-                /* Übergangseffekte */
-                .accordion-body.transition-swipe {
-                    transform: translateX(-100%);
-                    opacity: 0;
-                    transition: transform 0.3s ease, opacity 0.3s ease;
-                }
-                .accordion-body.active.transition-swipe {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-                .accordion-body.transition-zoom {
-                    transform: scale(0.9);
-                    opacity: 0;
-                    transition: transform 0.3s ease, opacity 0.3s ease;
-                }
-                .accordion-body.active.transition-zoom {
-                    transform: scale(1);
-                    opacity: 1;
                 }
             </style>
         `;
 
-        const accordion = document.createElement("div");
-        accordion.className = "accordion";
+        const container = document.createElement("div");
+        container.className = "accordion";
 
+        // Filterleiste hinzufügen, falls definiert
+        if (this.config.filters && this.config.filters.length > 0) {
+            const filterBar = document.createElement("div");
+            filterBar.className = "accordion-filters";
+
+            this.config.filters.forEach((filter) => {
+                const filterButton = document.createElement("div");
+                filterButton.className = "accordion-filter";
+                filterButton.textContent = filter.name;
+                filterButton.addEventListener("click", () => this.applyFilter(filter));
+                filterBar.appendChild(filterButton);
+            });
+
+            container.appendChild(filterBar);
+        }
+
+        // Tabs erstellen
         this.config.items.forEach((item, index) => {
             const header = document.createElement("div");
             header.className = "accordion-header";
-            header.addEventListener("click", () => this.toggleItem(index, alwaysOpen, transitionEffect));
+            header.addEventListener("click", () => this.toggleItem(index));
 
             const title = document.createElement("p");
             title.className = "accordion-title";
             title.textContent = item.title || `Item ${index + 1}`;
 
-            const icon = document.createElement("span");
-            icon.className = "accordion-icon";
-            icon.innerHTML = "&#9662;"; // Standard-Pfeil
-
             const body = document.createElement("div");
-            body.className = `accordion-body ${animationType} transition-${transitionEffect}`;
+            body.className = "accordion-body";
             body.dataset.index = index;
 
             if (item.card) {
@@ -137,18 +127,17 @@ class AccordionCard extends HTMLElement {
             }
 
             header.appendChild(title);
-            header.appendChild(icon);
 
             const itemContainer = document.createElement("div");
             itemContainer.className = "accordion-item";
             itemContainer.appendChild(header);
             itemContainer.appendChild(body);
 
-            accordion.appendChild(itemContainer);
+            container.appendChild(itemContainer);
         });
 
         this.shadowRoot.innerHTML = style;
-        this.shadowRoot.appendChild(accordion);
+        this.shadowRoot.appendChild(container);
     }
 
     async createCard(config) {
@@ -165,22 +154,34 @@ class AccordionCard extends HTMLElement {
         return cardElement;
     }
 
-    toggleItem(index, alwaysOpen, transitionEffect) {
+    applyFilter(filter) {
+        const items = this.shadowRoot.querySelectorAll(".accordion-item");
+        items.forEach((item, index) => {
+            const currentItem = this.config.items[index];
+            const condition = filter.condition || (() => true); // Default: Zeigt alles an
+            if (condition(currentItem)) {
+                item.style.display = "block";
+            } else {
+                item.style.display = "none";
+            }
+        });
+
+        // Setze den aktiven Zustand für die Filterbuttons
+        this.shadowRoot.querySelectorAll(".accordion-filter").forEach((btn) => {
+            btn.classList.remove("active");
+        });
+        const activeButton = Array.from(this.shadowRoot.querySelectorAll(".accordion-filter"))
+            .find((btn) => btn.textContent === filter.name);
+        if (activeButton) activeButton.classList.add("active");
+    }
+
+    toggleItem(index) {
         const body = this.shadowRoot.querySelector(`.accordion-body[data-index="${index}"]`);
-        const header = this.shadowRoot.querySelectorAll(".accordion-header")[index];
-        const icon = header.querySelector(".accordion-icon");
         const isActive = body.classList.contains("active");
 
-        if (!alwaysOpen) {
-            this.shadowRoot.querySelectorAll(".accordion-body").forEach((el) => el.classList.remove("active"));
-            this.shadowRoot.querySelectorAll(".accordion-header").forEach((el) => el.classList.remove("active"));
-            this.shadowRoot.querySelectorAll(".accordion-icon").forEach((el) => el.classList.remove("active"));
-        }
-
-        if (!isActive || alwaysOpen) {
-            body.classList.toggle("active");
-            header.classList.toggle("active");
-            icon.classList.toggle("active");
+        this.shadowRoot.querySelectorAll(".accordion-body").forEach((el) => el.classList.remove("active"));
+        if (!isActive) {
+            body.classList.add("active");
         }
     }
 
