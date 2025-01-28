@@ -47,372 +47,256 @@ class AccordionCard extends HTMLElement {
         this.render();
     }
 
-    render() {
-        const style = `
-            <style>
-                .accordion {
-                    border: 1px solid var(--divider-color);
-                    border-radius: ${this.config.card_radius};
-                    overflow: hidden;
-                    ${this.config.use_shadow ? 'box-shadow: 0 2px 6px rgba(0,0,0,0.1);' : ''}
-                }
+    // Color helper function
+    darkenColor(color, percent) {
+        if (color.startsWith('var(')) return color;
+        
+        let R = parseInt(color.substring(1,3),16);
+        let G = parseInt(color.substring(3,5),16);
+        let B = parseInt(color.substring(5,7),16);
 
-                .accordion-filters {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 10px;
-                    padding: 10px;
-                    background-color: ${this.config.filter_background_color};
-                    font-size: ${this.config.filter_font_size};
-                }
+        R = parseInt(R * (100 - percent) / 100);
+        G = parseInt(G * (100 - percent) / 100);
+        B = parseInt(B * (100 - percent) / 100);
 
-                .accordion-filter {
-                    cursor: pointer;
-                    padding: 8px 16px;
-                    border: 1px solid var(--divider-color);
-                    border-radius: ${this.config.header_radius};
-                    background: ${this.config.filter_button_color};
-                    color: var(--text-primary-color);
-                    font-size: inherit;
-                    transition: all ${this.config.animation_speed} ease;
-                }
+        R = (R<255)?R:255;  
+        G = (G<255)?G:255;  
+        B = (B<255)?B:255;  
 
-                ${this.config.hover_effect ? `
-                .accordion-filter:hover {
-                    transform: translateY(-1px);
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                }
-                ` : ''}
+        const RR = ((R.toString(16).length==1)?"0"+R.toString(16):R.toString(16));
+        const GG = ((G.toString(16).length==1)?"0"+G.toString(16):G.toString(16));
+        const BB = ((B.toString(16).length==1)?"0"+B.toString(16):B.toString(16));
 
-                .accordion-filter.active {
-                    background: var(--accent-color);
-                    color: var(--text-primary-color);
-                }
+        return "#"+RR+GG+BB;
+    }
 
-                .accordion-search {
-                    padding: 10px;
-                    background-color: ${this.config.search_background_color};
-                }
+    // Group items by room
+    groupItemsByRoom() {
+        const groups = {};
+        this.config.items.forEach(item => {
+            const room = item.room || 'Other';
+            if (!groups[room]) groups[room] = [];
+            groups[room].push(item);
+        });
+        return groups;
+    }
 
-                .accordion-search input {
-                    box-sizing: border-box;
-                    width: 100%;
-                    padding: 10px;
-                    border: 1px solid var(--divider-color);
-                    border-radius: ${this.config.header_radius};
-                    font-size: ${this.config.search_font_size};
-                    background: var(--card-background-color);
-                    color: var(--primary-text-color);
-                    transition: all ${this.config.animation_speed} ease;
-                }
+    // Get entity status
+    getItemStatus(item) {
+        if (!this._hass || !item.card || !item.card.entities) return false;
+        
+        const entity = Array.isArray(item.card.entities) 
+            ? item.card.entities[0]
+            : (typeof item.card.entities === 'string' ? item.card.entities : null);
+            
+        if (!entity) return false;
+        
+        const entityId = typeof entity === 'string' ? entity : entity.entity;
+        const state = this._hass.states[entityId];
+        
+        return state && state.state !== 'off' && state.state !== 'unavailable';
+    }
 
-                .accordion-search input:focus {
-                    outline: none;
-                    border-color: var(--accent-color);
-                    box-shadow: 0 0 0 2px rgba(var(--accent-color-rgb), 0.2);
-                }
+    // Create quick action buttons
+    createQuickActions(item) {
+        const quickActions = document.createElement("div");
+        quickActions.className = "quick-actions";
 
-                .accordion-item {
-                    margin-bottom: 8px;
-                    border-radius: ${this.config.header_radius};
-                    ${this.config.use_shadow ? 'box-shadow: 0 1px 3px rgba(0,0,0,0.1);' : ''}
-                }
+        if (item.card && item.card.entities) {
+            const entity = Array.isArray(item.card.entities) 
+                ? item.card.entities[0] 
+                : item.card.entities;
+            
+            const entityId = typeof entity === 'string' ? entity : entity.entity;
+            const domain = entityId.split('.')[0];
 
-                .accordion-header {
-                    background-color: ${this.config.header_color_closed};
-                    ${this.config.header_gradient ? `
-                    background-image: linear-gradient(to right, ${this.config.header_color_closed}, ${this.darkenColor(this.config.header_color_closed, 10)});
-                    ` : ''}
-                    height: ${this.config.height};
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    padding: 0 15px;
-                    cursor: pointer;
-                    color: ${this.config.title_color};
-                    font-size: ${this.config.title_size};
-                    border-radius: ${this.config.header_radius};
-                    transition: all ${this.config.animation_speed} ease;
-                }
-
-                .accordion-header:hover {
-                    ${this.config.hover_effect ? 'transform: translateX(2px);' : ''}
-                }
-
-                .accordion-header.open {
-                    background-color: ${this.config.header_color_open};
-                    ${this.config.header_gradient ? `
-                    background-image: linear-gradient(to right, ${this.config.header_color_open}, ${this.darkenColor(this.config.header_color_open, 10)});
-                    ` : ''}
-                }
-
-                .header-content {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    width: 100%;
-                    gap: 10px;
-                }
-
-                .header-left {
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                }
-
-                .header-right {
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                }
-
-                .status-indicator {
-                    width: 8px;
-                    height: 8px;
-                    border-radius: 50%;
-                    margin-right: 8px;
-                }
-
-                .status-indicator.active {
-                    background-color: var(--success-color, #4CAF50);
-                }
-
-                .status-indicator.inactive {
-                    background-color: var(--warning-color, #FFA726);
-                }
-
-                .quick-actions {
-                    display: flex;
-                    gap: 8px;
-                }
-
-                .quick-action-btn {
-                    padding: 4px 8px;
-                    border-radius: ${this.config.header_radius};
-                    background: rgba(var(--accent-color-rgb), 0.1);
-                    color: var(--accent-color);
-                    font-size: 12px;
-                    cursor: pointer;
-                    transition: all ${this.config.animation_speed} ease;
-                }
-
-                .quick-action-btn:hover {
-                    background: rgba(var(--accent-color-rgb), 0.2);
-                }
-
-                .favorite-btn {
-                    cursor: pointer;
-                    color: var(--warning-color, #FFA726);
-                    opacity: 0.5;
-                    transition: opacity ${this.config.animation_speed} ease;
-                }
-
-                .favorite-btn.active {
-                    opacity: 1;
-                }
-
-                .room-label {
-                    font-size: 12px;
-                    color: var(--secondary-text-color);
-                    background: rgba(var(--accent-color-rgb), 0.1);
-                    padding: 2px 6px;
-                    border-radius: 3px;
-                }
-
-                .arrow {
-                    width: 24px;
-                    height: 24px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    transition: transform ${this.config.animation_speed} ease;
-                    color: var(--primary-text-color);
-                    opacity: 0.7;
-                }
-
-                .arrow.open {
-                    transform: rotate(90deg);
-                }
-
-                .accordion-body {
-                    background-color: ${this.config.background_closed};
-                    max-height: 0;
-                    opacity: 0;
-                    overflow: hidden;
-                    transition: all ${this.config.animation_speed} ease;
-                    border-radius: 0 0 ${this.config.header_radius} ${this.config.header_radius};
-                }
-
-                .accordion-body.open {
-                    background-color: ${this.config.background_open};
-                    max-height: 500px;
-                    opacity: 1;
-                    padding: 10px;
-                }
-
-                .room-group {
-                    margin: 16px 0;
-                }
-
-                .room-group-title {
-                    font-size: 18px;
-                    color: var(--primary-text-color);
-                    margin-bottom: 8px;
-                    padding-left: 10px;
-                }
-            </style>
-        `;
-
-        const container = document.createElement("div");
-        container.className = "accordion";
-
-        // Add search
-        if (this.config.show_search) {
-            container.appendChild(this.createSearchBar());
-        }
-
-        // Add filters
-        if (this.config.filters?.length > 0) {
-            container.appendChild(this.createFilterBar());
-        }
-
-        // Group items by room if enabled
-        if (this.config.group_by_room) {
-            const groupedItems = this.groupItemsByRoom();
-            for (const [room, items] of Object.entries(groupedItems)) {
-                const roomGroup = document.createElement("div");
-                roomGroup.className = "room-group";
-                
-                const roomTitle = document.createElement("div");
-                roomTitle.className = "room-group-title";
-                roomTitle.textContent = room;
-                roomGroup.appendChild(roomTitle);
-
-                items.forEach((item, index) => {
-                    roomGroup.appendChild(this.createAccordionItem(item, index));
+            if (domain === 'light') {
+                const toggleBtn = document.createElement("div");
+                toggleBtn.className = "quick-action-btn";
+                toggleBtn.textContent = "Toggle";
+                toggleBtn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    this.toggleEntity(entityId);
                 });
-
-                container.appendChild(roomGroup);
+                quickActions.appendChild(toggleBtn);
             }
-        } else {
-            // Regular rendering
-            this.config.items.forEach((item, index) => {
-                container.appendChild(this.createAccordionItem(item, index));
-            });
+            
+            if (domain === 'cover') {
+                ['Up', 'Stop', 'Down'].forEach(action => {
+                    const btn = document.createElement("div");
+                    btn.className = "quick-action-btn";
+                    btn.textContent = action;
+                    btn.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        this.controlCover(entityId, action.toLowerCase());
+                    });
+                    quickActions.appendChild(btn);
+                });
+            }
         }
 
-        this.shadowRoot.innerHTML = style;
-        this.shadowRoot.appendChild(container);
+        return quickActions;
     }
 
-    createSearchBar() {
-        const searchBar = document.createElement("div");
-        searchBar.className = "accordion-search";
-
-        const searchInput = document.createElement("input");
-        searchInput.type = "text";
-        searchInput.placeholder = "Search...";
-        searchInput.addEventListener("input", (e) => this.applySearch(e.target.value));
-
-        searchBar.appendChild(searchInput);
-        return searchBar;
+    // Toggle entity state
+    toggleEntity(entityId) {
+        if (!this._hass) return;
+        this._hass.callService('homeassistant', 'toggle', {
+            entity_id: entityId
+        });
     }
 
-    createFilterBar() {
-        const filterBar = document.createElement("div");
-        filterBar.className = "accordion-filters";
+    // Control cover
+    controlCover(entityId, action) {
+        if (!this._hass) return;
+        this._hass.callService('cover', action, {
+            entity_id: entityId
+        });
+    }
 
-        this.config.filters.forEach((filter) => {
-            const filterButton = document.createElement("button");
-            filterButton.className = "accordion-filter";
-            filterButton.textContent = filter.name;
-            filterButton.addEventListener("click", () => this.applyFilter(filter));
-            filterBar.appendChild(filterButton);
+    // Toggle favorite status
+    toggleFavorite(index) {
+        if (this._favorites.has(index)) {
+            this._favorites.delete(index);
+        } else {
+            this._favorites.add(index);
+        }
+        this.render();
+    }
+
+    // Search functionality
+    applySearch(term) {
+        const items = this.shadowRoot.querySelectorAll(".accordion-item");
+        term = term.toLowerCase().trim();
+
+        items.forEach((item, index) => {
+            const currentItem = this.config.items[index];
+            const title = (currentItem.title || '').toLowerCase();
+            const category = (currentItem.category || '').toLowerCase();
+            const room = (currentItem.room || '').toLowerCase();
+            
+            const match = title.includes(term) || 
+                         category.includes(term) || 
+                         room.includes(term);
+                         
+            item.style.display = match ? "block" : "none";
+            
+            // Hide room groups if all items in the group are hidden
+            if (this.config.group_by_room) {
+                const roomGroup = item.closest('.room-group');
+                if (roomGroup) {
+                    const visibleItems = Array.from(roomGroup.querySelectorAll('.accordion-item'))
+                        .some(i => i.style.display !== 'none');
+                    roomGroup.style.display = visibleItems ? "block" : "none";
+                }
+            }
+        });
+    }
+
+    // Filter functionality
+    applyFilter(filter) {
+        const items = this.shadowRoot.querySelectorAll(".accordion-item");
+
+        items.forEach((item, index) => {
+            const currentItem = this.config.items[index];
+            let isMatch = true;
+
+            if (filter.name === 'Alle') {
+                isMatch = true;
+            } else if (filter.condition) {
+                // Parse the condition string
+                const condition = filter.condition.replace(/['"]/g, '');
+                const [property, value] = condition.split('===').map(s => s.trim());
+                const itemValue = currentItem[property.split('.')[1]];
+                isMatch = itemValue === value;
+            }
+
+            item.style.display = isMatch ? "block" : "none";
+
+            // Update room group visibility
+            if (this.config.group_by_room) {
+                const roomGroup = item.closest('.room-group');
+                if (roomGroup) {
+                    const visibleItems = Array.from(roomGroup.querySelectorAll('.accordion-item'))
+                        .some(i => i.style.display !== 'none');
+                    roomGroup.style.display = visibleItems ? "block" : "none";
+                }
+            }
         });
 
-        return filterBar;
+        // Update active filter button
+        const filterButtons = this.shadowRoot.querySelectorAll(".accordion-filter");
+        filterButtons.forEach(button => button.classList.remove("active"));
+        
+        const activeButton = Array.from(filterButtons)
+            .find(btn => btn.textContent === filter.name);
+        if (activeButton) activeButton.classList.add("active");
     }
 
-    createAccordionItem(item, index) {
-        const accordionItem = document.createElement("div");
-        accordionItem.className = "accordion-item";
+    // Card creation
+    async createCard(config) {
+        if (!this.cardHelpers) {
+            this.cardHelpers = await window.loadCardHelpers();
+        }
 
-        const header = document.createElement("div");
-        header.className = "accordion-header";
+        const cardElement = await this.cardHelpers.createCardElement(config);
+        cardElement.hass = this._hass;
+        cardElement.setConfig(config);
 
-        const headerContent = document.createElement("div");
-        headerContent.className = "header-content";
+        return cardElement;
+    }
 
-        // Left side of header
-        const headerLeft = document.createElement("div");
-        headerLeft.className = "header-left";
+    // Tab toggle
+    toggleTab(index, alwaysOpen) {
+        const headers = this.shadowRoot.querySelectorAll(".accordion-header");
+        const bodies = this.shadowRoot.querySelectorAll(".accordion-body");
+        const arrows = this.shadowRoot.querySelectorAll(".arrow");
 
-        // Status indicator
+        if (!alwaysOpen) {
+            headers.forEach((header, i) => {
+                if (i !== index) header.classList.remove("open");
+            });
+            bodies.forEach((body, i) => {
+                if (i !== index) body.classList.remove("open");
+            });
+            arrows.forEach((arrow, i) => {
+                if (i !== index) arrow.classList.remove("open");
+            });
+        }
+
+        headers[index].classList.toggle("open");
+        bodies[index].classList.toggle("open");
+        if (arrows[index]) arrows[index].classList.toggle("open");
+    }
+
+    // HASS connection
+    set hass(hass) {
+        this._hass = hass;
+        const bodies = this.shadowRoot.querySelectorAll(".accordion-body");
+        bodies.forEach((body, index) => {
+            const item = this.config.items[index];
+            if (item.card) {
+                const card = body.firstElementChild;
+                if (card) card.hass = hass;
+            }
+        });
+
+        // Update status indicators if needed
         if (this.config.show_status) {
-            const status = document.createElement("div");
-            status.className = "status-indicator " + (this.getItemStatus(item) ? "active" : "inactive");
-            headerLeft.appendChild(status);
-        }
-
-        // Title
-        const title = document.createElement("span");
-        title.textContent = item.title || `Item ${index + 1}`;
-        headerLeft.appendChild(title);
-
-        // Room label if not grouped
-        if (!this.config.group_by_room && item.room) {
-            const roomLabel = document.createElement("span");
-            roomLabel.className = "room-label";
-            roomLabel.textContent = item.room;
-            headerLeft.appendChild(roomLabel);
-        }
-
-        headerContent.appendChild(headerLeft);
-
-        // Right side of header
-        const headerRight = document.createElement("div");
-        headerRight.className = "header-right";
-
-        // Quick actions
-        if (this.config.show_quick_actions) {
-            const quickActions = this.createQuickActions(item);
-            headerRight.appendChild(quickActions);
-        }
-
-        // Favorite button
-        if (this.config.show_favorite_button) {
-            const favButton = document.createElement("div");
-            favButton.className = "favorite-btn" + (this._favorites.has(index) ? " active" : "");
-            favButton.innerHTML = '★';
-            favButton.addEventListener("click", (e) => {
-                e.stopPropagation();
-                this.toggleFavorite(index);
-            });
-            headerRight.appendChild(favButton);
-        }
-
-        // Arrow
-        if (this.config.show_arrow) {
-            const arrow = document.createElement("div");
-            arrow.className = "arrow";
-            arrow.innerHTML = '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"></path></svg>';
-            headerRight.appendChild(arrow);
-        }
-
-        headerContent.appendChild(headerRight);
-        header.appendChild(headerContent);
-
-        header.addEventListener("click", () => this.toggleTab(index, this.config.always_open));
-
-        const body = document.createElement("div");
-        body.className = "accordion-body";
-
-        if (item.card) {
-            this.createCard(item.card).then((card) => {
-                if (card) body.appendChild(card);
+            const items = this.shadowRoot.querySelectorAll(".accordion-item");
+            items.forEach((item, index) => {
+                const status = item.querySelector(".status-indicator");
+                if (status) {
+                    const isActive = this.getItemStatus(this.config.items[index]);
+                    status.className = "status-indicator " + (isActive ? "active" : "inactive");
+                }
             });
         }
+    }
 
-        accordionItem.appendChild(header);
-        accordionItem.appendChild(body);
-        return
+    getCardSize() {
+        return this.config.items.length || 1;
+    }
+}
+
+customElements.define("accordion-card", AccordionCard);
