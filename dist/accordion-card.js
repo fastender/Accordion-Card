@@ -11,7 +11,7 @@ class AccordionCard extends HTMLElement {
 
         this.config = config;
 
-        // Lade die Lovelace-Karten-Helfer
+        // Load Lovelace card helpers
         this.cardHelpers = await window.loadCardHelpers();
 
         this.render();
@@ -20,21 +20,17 @@ class AccordionCard extends HTMLElement {
     render() {
         if (!this.config) return;
 
-        const filterFontSize = this.config.filter_font_size || "14px";
-        const filterBackgroundColor = this.config.filter_background_color || "var(--primary-background-color)";
-        const filterButtonColor = this.config.filter_button_color || "var(--secondary-background-color)";
-        const searchFontSize = this.config.search_font_size || "14px";
-        const searchBackgroundColor = this.config.search_background_color || "var(--primary-background-color)";
-        const showSearch = this.config.show_search || false; // Standard: Nicht anzeigen
-        const allowMinimize = this.config.allow_minimize || false;
-        const allowMaximize = this.config.allow_maximize || false;
-
-        // Texte für Übersetzungen
-        const translations = {
-            search_placeholder: this.translate("search_placeholder") || "Search by title or category...",
-            minimize_all: this.translate("minimize_all") || "Minimize All",
-            maximize_all: this.translate("maximize_all") || "Maximize All",
-        };
+        const {
+            title_size = "16px",
+            title_color = "var(--primary-text-color)",
+            header_color_open = "var(--primary-background-color)",
+            header_color_closed = "var(--primary-background-color)",
+            background_open = "var(--card-background-color)",
+            background_closed = "var(--card-background-color)",
+            allow_minimize = false,
+            allow_maximize = false,
+            always_open = false,
+        } = this.config;
 
         const style = `
             <style>
@@ -47,43 +43,10 @@ class AccordionCard extends HTMLElement {
                     display: flex;
                     gap: 10px;
                     padding: 10px;
-                    margin-bottom: 10px;
-                    background-color: ${filterBackgroundColor};
-                    font-size: ${filterFontSize};
                     flex-wrap: wrap;
                 }
-                .accordion-filter {
-                    cursor: pointer;
-                    padding: 5px 15px;
-                    border: 1px solid var(--divider-color);
-                    border-radius: 4px;
-                    background: ${filterButtonColor};
-                    color: var(--text-primary-color);
-                    font-size: inherit;
-                    transition: background 0.3s ease, color 0.3s ease;
-                }
-                .accordion-filter.active {
-                    background: var(--accent-color);
-                    color: var(--text-primary-color);
-                }
-                .accordion-search {
-                    flex: 1 1 100%;
-                    margin-bottom: 10px;
-                }
-                .accordion-search input {
-                    width: 100%;
-                    padding: 8px;
-                    border: 1px solid var(--divider-color);
-                    border-radius: 4px;
-                    font-size: ${searchFontSize};
-                    background-color: ${searchBackgroundColor};
-                    outline: none;
-                }
-                .accordion-item {
-                    border-bottom: 1px solid var(--divider-color);
-                }
                 .accordion-header {
-                    background-color: var(--primary-background-color);
+                    background-color: ${header_color_closed};
                     padding: 10px;
                     cursor: pointer;
                     display: flex;
@@ -91,22 +54,25 @@ class AccordionCard extends HTMLElement {
                     align-items: center;
                     transition: background-color 0.3s ease;
                 }
-                .accordion-header:hover {
-                    filter: brightness(1.1);
+                .accordion-header.open {
+                    background-color: ${header_color_open};
                 }
                 .accordion-title {
                     margin: 0;
+                    color: ${title_color};
+                    font-size: ${title_size};
                     flex-grow: 1;
                     text-align: left;
                 }
                 .accordion-body {
+                    background-color: ${background_closed};
                     max-height: 0;
                     opacity: 0;
                     overflow: hidden;
-                    background-color: var(--primary-background-color);
                     transition: max-height 0.3s ease, opacity 0.3s ease, background-color 0.3s ease;
                 }
-                .accordion-body.active {
+                .accordion-body.open {
+                    background-color: ${background_open};
                     max-height: 500px;
                     opacity: 1;
                 }
@@ -116,41 +82,33 @@ class AccordionCard extends HTMLElement {
         const container = document.createElement("div");
         container.className = "accordion";
 
-        // Suchleiste hinzufügen (nur wenn aktiviert)
-        if (showSearch) {
-            const searchBar = document.createElement("div");
-            searchBar.className = "accordion-search";
+        // Add minimize and maximize buttons
+        if (allow_minimize || allow_maximize) {
+            const controls = document.createElement("div");
+            controls.className = "accordion-filters";
 
-            const searchInput = document.createElement("input");
-            searchInput.type = "text";
-            searchInput.placeholder = translations.search_placeholder;
-            searchInput.addEventListener("input", (e) => this.applySearch(e.target.value));
+            if (allow_minimize) {
+                const minimizeButton = document.createElement("button");
+                minimizeButton.textContent = "Minimize All";
+                minimizeButton.addEventListener("click", () => this.minimizeAllTabs());
+                controls.appendChild(minimizeButton);
+            }
 
-            searchBar.appendChild(searchInput);
-            container.appendChild(searchBar);
+            if (allow_maximize) {
+                const maximizeButton = document.createElement("button");
+                maximizeButton.textContent = "Maximize All";
+                maximizeButton.addEventListener("click", () => this.maximizeAllTabs());
+                controls.appendChild(maximizeButton);
+            }
+
+            container.appendChild(controls);
         }
 
-        // Filterleiste hinzufügen
-        if (this.config.filters?.length > 0) {
-            const filterBar = document.createElement("div");
-            filterBar.className = "accordion-filters";
-
-            this.config.filters.forEach((filter) => {
-                const filterButton = document.createElement("div");
-                filterButton.className = "accordion-filter";
-                filterButton.textContent = filter.name;
-                filterButton.addEventListener("click", () => this.applyFilter(filter));
-                filterBar.appendChild(filterButton);
-            });
-
-            container.appendChild(filterBar);
-        }
-
-        // Tabs erstellen
+        // Render tabs
         this.config.items.forEach((item, index) => {
             const header = document.createElement("div");
             header.className = "accordion-header";
-            header.addEventListener("click", () => this.toggleItem(index));
+            header.addEventListener("click", () => this.toggleTab(index, always_open));
 
             const title = document.createElement("p");
             title.className = "accordion-title";
@@ -158,23 +116,17 @@ class AccordionCard extends HTMLElement {
 
             const body = document.createElement("div");
             body.className = "accordion-body";
-            body.dataset.index = index;
 
+            // Load the card
             if (item.card) {
-                // Asynchron die Karte erstellen
                 this.createCard(item.card).then((card) => {
                     if (card) body.appendChild(card);
                 });
             }
 
             header.appendChild(title);
-
-            const itemContainer = document.createElement("div");
-            itemContainer.className = "accordion-item";
-            itemContainer.appendChild(header);
-            itemContainer.appendChild(body);
-
-            container.appendChild(itemContainer);
+            container.appendChild(header);
+            container.appendChild(body);
         });
 
         this.shadowRoot.innerHTML = style;
@@ -185,89 +137,58 @@ class AccordionCard extends HTMLElement {
         if (!this.cardHelpers) {
             this.cardHelpers = await window.loadCardHelpers();
         }
-
         const cardElement = await this.cardHelpers.createCardElement(config);
         cardElement.setConfig(config);
         if (this._hass) {
-            cardElement.hass = hass;
+            cardElement.hass = this._hass;
         }
-
         return cardElement;
     }
 
-    applySearch(searchTerm) {
-        const items = this.shadowRoot.querySelectorAll(".accordion-item");
-        items.forEach((item, index) => {
-            const currentItem = this.config.items[index];
-            const title = currentItem.title.toLowerCase();
-            const category = currentItem.category?.toLowerCase() || "";
-            if (title.includes(searchTerm.toLowerCase()) || category.includes(searchTerm.toLowerCase())) {
-                item.style.display = "block";
-            } else {
-                item.style.display = "none";
-            }
-        });
-    }
+    toggleTab(index, alwaysOpen) {
+        const headers = this.shadowRoot.querySelectorAll(".accordion-header");
+        const bodies = this.shadowRoot.querySelectorAll(".accordion-body");
 
-    applyFilter(filter) {
-        const items = this.shadowRoot.querySelectorAll(".accordion-item");
+        const isOpen = bodies[index].classList.contains("open");
 
-        // Iteriere durch alle Items und überprüfe die Kategorie
-        items.forEach((item, index) => {
-            const currentItem = this.config.items[index];
-            const category = currentItem.category?.toLowerCase() || "";
+        if (!alwaysOpen) {
+            bodies.forEach((body, i) => {
+                if (i !== index) body.classList.remove("open");
+            });
+            headers.forEach((header, i) => {
+                if (i !== index) header.classList.remove("open");
+            });
+        }
 
-            if (filter.category === "all" || category === filter.category.toLowerCase()) {
-                item.style.display = "block";
-            } else {
-                item.style.display = "none";
-            }
-        });
-
-        // Setze den aktiven Zustand für die Filterbuttons
-        this.shadowRoot.querySelectorAll(".accordion-filter").forEach((btn) => {
-            btn.classList.remove("active");
-        });
-
-        const activeButton = Array.from(this.shadowRoot.querySelectorAll(".accordion-filter"))
-            .find((btn) => btn.textContent === filter.name);
-        if (activeButton) activeButton.classList.add("active");
-    }
-
-    toggleItem(index) {
-        const body = this.shadowRoot.querySelector(`.accordion-body[data-index="${index}"]`);
-        const isActive = body.classList.contains("active");
-
-        this.shadowRoot.querySelectorAll(".accordion-body").forEach((el) => el.classList.remove("active"));
-        if (!isActive) {
-            body.classList.add("active");
+        if (isOpen) {
+            bodies[index].classList.remove("open");
+            headers[index].classList.remove("open");
+        } else {
+            bodies[index].classList.add("open");
+            headers[index].classList.add("open");
         }
     }
 
-    translate(key) {
-        const translations = {
-            search_placeholder: {
-                en: "Search by title or category...",
-                de: "Suche nach Titel oder Kategorie...",
-            },
-            minimize_all: {
-                en: "Minimize All",
-                de: "Alle minimieren",
-            },
-            maximize_all: {
-                en: "Maximize All",
-                de: "Alle maximieren",
-            },
-        };
-        const lang = this._hass?.language || "en";
-        return translations[key]?.[lang] || translations[key]?.en;
+    minimizeAllTabs() {
+        const headers = this.shadowRoot.querySelectorAll(".accordion-header");
+        const bodies = this.shadowRoot.querySelectorAll(".accordion-body");
+
+        headers.forEach((header) => header.classList.remove("open"));
+        bodies.forEach((body) => body.classList.remove("open"));
+    }
+
+    maximizeAllTabs() {
+        const headers = this.shadowRoot.querySelectorAll(".accordion-header");
+        const bodies = this.shadowRoot.querySelectorAll(".accordion-body");
+
+        headers.forEach((header) => header.classList.add("open"));
+        bodies.forEach((body) => body.classList.add("open"));
     }
 
     set hass(hass) {
         this._hass = hass;
         const bodies = this.shadowRoot.querySelectorAll(".accordion-body");
-        bodies.forEach((body) => {
-            const index = body.dataset.index;
+        bodies.forEach((body, index) => {
             const item = this.config.items[index];
             if (item.card) {
                 const card = body.firstElementChild;
