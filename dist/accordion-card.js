@@ -43,6 +43,27 @@ class AccordionCard extends HTMLElement {
         this.render();
     }
 
+    expandAll() {
+        const headers = this.shadowRoot.querySelectorAll(".accordion-header");
+        const bodies = this.shadowRoot.querySelectorAll(".accordion-body");
+        const arrows = this.shadowRoot.querySelectorAll(".arrow");
+        
+        headers.forEach(header => header.classList.add("open"));
+        bodies.forEach(body => body.classList.add("open"));
+        arrows.forEach(arrow => arrow.classList.add("open"));
+    }
+
+    collapseAll() {
+        const headers = this.shadowRoot.querySelectorAll(".accordion-header");
+        const bodies = this.shadowRoot.querySelectorAll(".accordion-body");
+        const arrows = this.shadowRoot.querySelectorAll(".arrow");
+        
+        headers.forEach(header => header.classList.remove("open"));
+        bodies.forEach(body => body.classList.remove("open"));
+        arrows.forEach(arrow => arrow.classList.remove("open"));
+    }
+
+    
     render() {
         if (!this.config) return;
 
@@ -145,11 +166,9 @@ class AccordionCard extends HTMLElement {
                     -webkit-backdrop-filter: blur(10px);
                 }
                 .accordion-filter.active {
-                    background: var(--ha-card-background, var(--card-background-color));
-                    color: var(--text-primary-color);
-                    background: color-mix(in srgb, var(--card-background-color) 80%, transparent);
-                    backdrop-filter: blur(10px);
-                    -webkit-backdrop-filter: blur(10px);
+                    background: var(--text-primary-color);
+                    color: ${filter_button_color};
+                    border-color: var(--text-primary-color);
                 }
                 .accordion-search {
                     padding: 10px;
