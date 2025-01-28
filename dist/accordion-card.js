@@ -36,7 +36,8 @@ class AccordionCard extends HTMLElement {
 
         this.config = {
             ...config,
-            language: config.language || this.ha_language || 'en' // Use HA language or fallback to en
+            language: config.language || this.ha_language || 'en', // Use HA language or fallback to en
+            show_expand_controls: config.show_expand_controls || false // New option for expand/collapse buttons
         };
         this.cardHelpers = await window.loadCardHelpers();
         this.render();
@@ -100,7 +101,7 @@ class AccordionCard extends HTMLElement {
                     transform: translateY(-50%);
                     width: 32px;
                     height: 32px;
-                    background: rgba(var(--rgb-primary-color), 0.9);
+                    background: color-mix(in srgb, var(--card-background-color) 80%, transparent);
                     border-radius: 50%;
                     display: flex;
                     align-items: center;
@@ -109,6 +110,9 @@ class AccordionCard extends HTMLElement {
                     opacity: 0;
                     transition: opacity 0.3s ease;
                     z-index: 1;
+                    backdrop-filter: blur(10px);
+                    -webkit-backdrop-filter: blur(10px);
+                    border: 1px solid var(--divider-color);
                 }
                 
                 .scroll-indicator.left {
@@ -137,19 +141,41 @@ class AccordionCard extends HTMLElement {
                     color: var(--text-primary-color);
                     font-size: inherit;
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    backdrop-filter: blur(10px);
+                    -webkit-backdrop-filter: blur(10px);
                 }
                 .accordion-filter.active {
-                    background: var(--accent-color);
+                    background: var(--ha-card-background, var(--card-background-color));
                     color: var(--text-primary-color);
-                    transform: scale(1.02);
-                }
-                .accordion-filter:hover {
-                    transform: translateY(-1px);
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    background: color-mix(in srgb, var(--card-background-color) 80%, transparent);
+                    backdrop-filter: blur(10px);
+                    -webkit-backdrop-filter: blur(10px);
                 }
                 .accordion-search {
                     padding: 10px;
                     background-color: ${search_background_color};
+                    display: flex;
+                    gap: 8px;
+                    align-items: center;
+                }
+                .accordion-control-button {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 4px;
+                    border: 1px solid var(--divider-color);
+                    background: color-mix(in srgb, var(--card-background-color) 80%, transparent);
+                    color: var(--primary-text-color);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    backdrop-filter: blur(10px);
+                    -webkit-backdrop-filter: blur(10px);
+                    transition: opacity 0.3s ease;
+                }
+                .accordion-control-button svg {
+                    width: 20px;
+                    height: 20px;
                 }
                 .accordion-search input {
                     box-sizing: border-box;
@@ -249,6 +275,23 @@ class AccordionCard extends HTMLElement {
             searchInput.addEventListener("input", (e) => this.applySearch(e.target.value));
 
             searchBar.appendChild(searchInput);
+
+            // Add expand/collapse buttons if enabled
+            if (this.config.show_expand_controls) {
+                const expandButton = document.createElement("button");
+                expandButton.className = "accordion-control-button";
+                expandButton.innerHTML = '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>';
+                expandButton.addEventListener("click", () => this.expandAll());
+                
+                const collapseButton = document.createElement("button");
+                collapseButton.className = "accordion-control-button";
+                collapseButton.innerHTML = '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 13H5v-2h14v2z"/></svg>';
+                collapseButton.addEventListener("click", () => this.collapseAll());
+                
+                searchBar.appendChild(expandButton);
+                searchBar.appendChild(collapseButton);
+            }
+
             container.appendChild(searchBar);
         }
 
@@ -411,14 +454,6 @@ class AccordionCard extends HTMLElement {
         filterBar.addEventListener('touchend', () => {
             isScrolling = false;
         });
-    }
-
-    createFilterButton(filter) {
-        const filterButton = document.createElement("button");
-        filterButton.className = "accordion-filter";
-        filterButton.textContent = filter.name;
-        filterButton.addEventListener("click", () => this.applyFilter(filter));
-        return filterButton;
     }
     async createCard(config) {
         if (!this.cardHelpers) {
