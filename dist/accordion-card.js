@@ -20,6 +20,12 @@ class AccordionCard extends HTMLElement {
     render() {
         if (!this.config) return;
 
+        const filterFontSize = this.config.filter_font_size || "14px";
+        const filterBackgroundColor = this.config.filter_background_color || "var(--primary-background-color)";
+        const filterButtonColor = this.config.filter_button_color || "var(--secondary-background-color)";
+        const allowMinimize = this.config.allow_minimize || false;
+        const allowMaximize = this.config.allow_maximize || false;
+
         const style = `
             <style>
                 .accordion {
@@ -33,21 +39,34 @@ class AccordionCard extends HTMLElement {
                     gap: 10px;
                     padding: 10px;
                     margin-bottom: 10px;
-                    background-color: var(--primary-background-color);
+                    background-color: ${filterBackgroundColor};
+                    font-size: ${filterFontSize};
+                    flex-wrap: wrap;
                 }
                 .accordion-filter {
                     cursor: pointer;
                     padding: 5px 15px;
                     border: 1px solid var(--divider-color);
                     border-radius: 4px;
-                    background: var(--secondary-background-color);
+                    background: ${filterButtonColor};
                     color: var(--text-primary-color);
-                    font-size: 14px;
+                    font-size: inherit;
                     transition: background 0.3s ease, color 0.3s ease;
                 }
                 .accordion-filter.active {
                     background: var(--accent-color);
                     color: var(--text-primary-color);
+                }
+                .accordion-search {
+                    flex: 1 1 100%;
+                    margin-bottom: 10px;
+                }
+                .accordion-search input {
+                    width: 100%;
+                    padding: 8px;
+                    border: 1px solid var(--divider-color);
+                    border-radius: 4px;
+                    font-size: ${filterFontSize};
                 }
                 .accordion-item {
                     border-bottom: 1px solid var(--divider-color);
@@ -60,9 +79,6 @@ class AccordionCard extends HTMLElement {
                     justify-content: space-between;
                     align-items: center;
                     transition: background-color 0.3s ease;
-                }
-                .accordion-header.active {
-                    background-color: var(--accent-color);
                 }
                 .accordion-header:hover {
                     filter: brightness(1.1);
@@ -89,10 +105,38 @@ class AccordionCard extends HTMLElement {
         const container = document.createElement("div");
         container.className = "accordion";
 
-        // Filterleiste hinzufügen, falls definiert
+        // Suchleiste hinzufügen
+        const searchBar = document.createElement("div");
+        searchBar.className = "accordion-search";
+
+        const searchInput = document.createElement("input");
+        searchInput.type = "text";
+        searchInput.placeholder = "Suche nach Titel oder Kategorie...";
+        searchInput.addEventListener("input", (e) => this.applySearch(e.target.value));
+
+        searchBar.appendChild(searchInput);
+        container.appendChild(searchBar);
+
+        // Filterleiste hinzufügen
         if (this.config.filters && this.config.filters.length > 0) {
             const filterBar = document.createElement("div");
             filterBar.className = "accordion-filters";
+
+            if (allowMinimize) {
+                const minimizeButton = document.createElement("div");
+                minimizeButton.className = "accordion-filter";
+                minimizeButton.textContent = "Alle minimieren";
+                minimizeButton.addEventListener("click", () => this.minimizeAllTabs());
+                filterBar.appendChild(minimizeButton);
+            }
+
+            if (allowMaximize) {
+                const maximizeButton = document.createElement("div");
+                maximizeButton.className = "accordion-filter";
+                maximizeButton.textContent = "Alle maximieren";
+                maximizeButton.addEventListener("click", () => this.maximizeAllTabs());
+                filterBar.appendChild(maximizeButton);
+            }
 
             this.config.filters.forEach((filter) => {
                 const filterButton = document.createElement("div");
@@ -154,11 +198,25 @@ class AccordionCard extends HTMLElement {
         return cardElement;
     }
 
+    applySearch(searchTerm) {
+        const items = this.shadowRoot.querySelectorAll(".accordion-item");
+        items.forEach((item, index) => {
+            const currentItem = this.config.items[index];
+            const title = currentItem.title.toLowerCase();
+            const category = currentItem.category.toLowerCase();
+            if (title.includes(searchTerm.toLowerCase()) || category.includes(searchTerm.toLowerCase())) {
+                item.style.display = "block";
+            } else {
+                item.style.display = "none";
+            }
+        });
+    }
+
     applyFilter(filter) {
         const items = this.shadowRoot.querySelectorAll(".accordion-item");
         items.forEach((item, index) => {
             const currentItem = this.config.items[index];
-    
+
             // Wenn die Kategorie "all" ist oder die Kategorie mit dem Filter übereinstimmt, zeigen wir das Item an
             if (filter.category === "all" || currentItem.category === filter.category) {
                 item.style.display = "block";
@@ -166,7 +224,7 @@ class AccordionCard extends HTMLElement {
                 item.style.display = "none";
             }
         });
-    
+
         // Setze den aktiven Zustand für die Filterbuttons
         this.shadowRoot.querySelectorAll(".accordion-filter").forEach((btn) => {
             btn.classList.remove("active");
@@ -174,6 +232,22 @@ class AccordionCard extends HTMLElement {
         const activeButton = Array.from(this.shadowRoot.querySelectorAll(".accordion-filter"))
             .find((btn) => btn.textContent === filter.name);
         if (activeButton) activeButton.classList.add("active");
+    }
+
+    minimizeAllTabs() {
+        const bodies = this.shadowRoot.querySelectorAll(".accordion-body");
+        bodies.forEach((body) => {
+            body.classList.remove("active");
+            body.style.maxHeight = "0";
+        });
+    }
+
+    maximizeAllTabs() {
+        const bodies = this.shadowRoot.querySelectorAll(".accordion-body");
+        bodies.forEach((body) => {
+            body.classList.add("active");
+            body.style.maxHeight = "500px"; // Standardhöhe für geöffnete Tabs
+        });
     }
 
     toggleItem(index) {
