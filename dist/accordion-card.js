@@ -39,7 +39,6 @@ class AccordionCard extends HTMLElement {
         const style = `
             <style>
                 .accordion {
-                    font-family: Arial, sans-serif;
                     border: 1px solid var(--divider-color);
                     border-radius: 6px;
                     overflow: hidden;
@@ -131,8 +130,8 @@ class AccordionCard extends HTMLElement {
             container.appendChild(searchBar);
         }
 
-        // Filterleiste hinzufügen
-        if (this.config.filters && this.config.filters.length > 0) {
+        // Filterleiste oder Minimieren/Maximieren-Buttons hinzufügen
+        if (this.config.filters?.length > 0 || allowMinimize || allowMaximize) {
             const filterBar = document.createElement("div");
             filterBar.className = "accordion-filters";
 
@@ -152,13 +151,15 @@ class AccordionCard extends HTMLElement {
                 filterBar.appendChild(maximizeButton);
             }
 
-            this.config.filters.forEach((filter) => {
-                const filterButton = document.createElement("div");
-                filterButton.className = "accordion-filter";
-                filterButton.textContent = filter.name;
-                filterButton.addEventListener("click", () => this.applyFilter(filter));
-                filterBar.appendChild(filterButton);
-            });
+            if (this.config.filters?.length > 0) {
+                this.config.filters.forEach((filter) => {
+                    const filterButton = document.createElement("div");
+                    filterButton.className = "accordion-filter";
+                    filterButton.textContent = filter.name;
+                    filterButton.addEventListener("click", () => this.applyFilter(filter));
+                    filterBar.appendChild(filterButton);
+                });
+            }
 
             container.appendChild(filterBar);
         }
@@ -206,7 +207,7 @@ class AccordionCard extends HTMLElement {
         const cardElement = await this.cardHelpers.createCardElement(config);
         cardElement.setConfig(config);
         if (this._hass) {
-            cardElement.hass = this._hass;
+            cardElement.hass = hass;
         }
 
         return cardElement;
@@ -217,7 +218,7 @@ class AccordionCard extends HTMLElement {
         items.forEach((item, index) => {
             const currentItem = this.config.items[index];
             const title = currentItem.title.toLowerCase();
-            const category = currentItem.category.toLowerCase();
+            const category = currentItem.category?.toLowerCase() || "";
             if (title.includes(searchTerm.toLowerCase()) || category.includes(searchTerm.toLowerCase())) {
                 item.style.display = "block";
             } else {
