@@ -25,6 +25,9 @@ class AccordionCard extends HTMLElement {
         const headerColorOpen = this.config.header_color_open || "var(--accent-color)";
         const backgroundClosed = this.config.background_closed || "var(--primary-background-color)";
         const backgroundOpen = this.config.background_open || "var(--secondary-background-color)";
+        const titleColor = this.config.title_color || "#000000"; // Titel-Farbe
+        const titleSize = this.config.title_size || "16px"; // Titel-Größe
+        const alwaysOpen = this.config.always_open || false; // Standardmäßig geschlossen
 
         const style = `
             <style>
@@ -52,6 +55,11 @@ class AccordionCard extends HTMLElement {
                 .accordion-header:hover {
                     filter: brightness(1.1);
                 }
+                .accordion-title {
+                    color: ${titleColor};
+                    font-size: ${titleSize};
+                    margin: 0;
+                }
                 .accordion-body {
                     max-height: 0;
                     opacity: 0;
@@ -66,26 +74,14 @@ class AccordionCard extends HTMLElement {
                     transform: translateY(0);
                     background-color: ${backgroundOpen};
                 }
-
-                /* Spezifische Animationen */
-                .accordion-body.fade {
-                    transition: opacity 0.3s ease;
+                /* Pfeil Animation */
+                .accordion-arrow {
+                    display: inline-block;
+                    transform: rotate(0deg);
+                    transition: transform 0.3s ease;
                 }
-
-                .accordion-body.bounce {
-                    animation: bounce 0.3s ease;
-                }
-
-                @keyframes bounce {
-                    0% {
-                        transform: scaleY(0.9);
-                    }
-                    50% {
-                        transform: scaleY(1.05);
-                    }
-                    100% {
-                        transform: scaleY(1);
-                    }
+                .accordion-arrow.active {
+                    transform: rotate(180deg);
                 }
             </style>
         `;
@@ -96,8 +92,15 @@ class AccordionCard extends HTMLElement {
         this.config.items.forEach((item, index) => {
             const header = document.createElement("div");
             header.className = "accordion-header";
-            header.textContent = item.title || `Item ${index + 1}`;
-            header.addEventListener("click", () => this.toggleItem(index));
+            header.addEventListener("click", () => this.toggleItem(index, alwaysOpen));
+
+            const title = document.createElement("p");
+            title.className = "accordion-title";
+            title.textContent = item.title || `Item ${index + 1}`;
+
+            const arrow = document.createElement("span");
+            arrow.className = "accordion-arrow";
+            arrow.innerHTML = "&#9662;"; // Standard-Pfeil (kann durch SVG/Icons ersetzt werden)
 
             const body = document.createElement("div");
             body.className = `accordion-body ${animationType}`;
@@ -109,6 +112,9 @@ class AccordionCard extends HTMLElement {
                     if (card) body.appendChild(card);
                 });
             }
+
+            header.appendChild(title);
+            header.appendChild(arrow);
 
             const itemContainer = document.createElement("div");
             itemContainer.className = "accordion-item";
@@ -136,15 +142,22 @@ class AccordionCard extends HTMLElement {
         return cardElement;
     }
 
-    toggleItem(index) {
+    toggleItem(index, alwaysOpen) {
         const body = this.shadowRoot.querySelector(`.accordion-body[data-index="${index}"]`);
         const header = this.shadowRoot.querySelectorAll(".accordion-header")[index];
+        const arrow = header.querySelector(".accordion-arrow");
         const isActive = body.classList.contains("active");
-        this.shadowRoot.querySelectorAll(".accordion-body").forEach((el) => el.classList.remove("active"));
-        this.shadowRoot.querySelectorAll(".accordion-header").forEach((el) => el.classList.remove("active"));
-        if (!isActive) {
-            body.classList.add("active");
-            header.classList.add("active");
+
+        if (!alwaysOpen) {
+            this.shadowRoot.querySelectorAll(".accordion-body").forEach((el) => el.classList.remove("active"));
+            this.shadowRoot.querySelectorAll(".accordion-header").forEach((el) => el.classList.remove("active"));
+            this.shadowRoot.querySelectorAll(".accordion-arrow").forEach((el) => el.classList.remove("active"));
+        }
+
+        if (!isActive || alwaysOpen) {
+            body.classList.toggle("active");
+            header.classList.toggle("active");
+            arrow.classList.toggle("active");
         }
     }
 
