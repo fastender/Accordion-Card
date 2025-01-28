@@ -21,6 +21,7 @@ class AccordionCard extends HTMLElement {
         if (!this.config) return;
 
         const animationType = this.config.animation || "slide"; // Standardanimation
+        const transitionEffect = this.config.transition_effect || "none"; // Übergangseffekt: none, swipe, zoom
         const headerColorClosed = this.config.header_color_closed || "var(--primary-background-color)";
         const headerColorOpen = this.config.header_color_open || "var(--accent-color)";
         const backgroundClosed = this.config.background_closed || "var(--primary-background-color)";
@@ -78,6 +79,7 @@ class AccordionCard extends HTMLElement {
                     opacity: 0;
                     overflow: hidden;
                     background-color: ${backgroundClosed};
+                    transform: scale(1);
                     transition: max-height 0.3s ease, opacity 0.3s ease, background-color 0.3s ease;
                 }
                 .accordion-body.active {
@@ -85,23 +87,24 @@ class AccordionCard extends HTMLElement {
                     opacity: 1;
                     background-color: ${backgroundOpen};
                 }
-                /* Filterleiste */
-                .accordion-filters {
-                    display: flex;
-                    gap: 10px;
-                    margin-bottom: 10px;
+                /* Übergangseffekte */
+                .accordion-body.transition-swipe {
+                    transform: translateX(-100%);
+                    opacity: 0;
+                    transition: transform 0.3s ease, opacity 0.3s ease;
                 }
-                .accordion-filter {
-                    cursor: pointer;
-                    padding: 5px 10px;
-                    border: 1px solid var(--divider-color);
-                    border-radius: 4px;
-                    background: var(--primary-background-color);
-                    transition: background 0.3s ease;
+                .accordion-body.active.transition-swipe {
+                    transform: translateX(0);
+                    opacity: 1;
                 }
-                .accordion-filter.active {
-                    background: var(--accent-color);
-                    color: var(--text-primary-color);
+                .accordion-body.transition-zoom {
+                    transform: scale(0.9);
+                    opacity: 0;
+                    transition: transform 0.3s ease, opacity 0.3s ease;
+                }
+                .accordion-body.active.transition-zoom {
+                    transform: scale(1);
+                    opacity: 1;
                 }
             </style>
         `;
@@ -109,25 +112,10 @@ class AccordionCard extends HTMLElement {
         const accordion = document.createElement("div");
         accordion.className = "accordion";
 
-        if (this.config.filters) {
-            const filterBar = document.createElement("div");
-            filterBar.className = "accordion-filters";
-
-            this.config.filters.forEach((filter) => {
-                const filterButton = document.createElement("div");
-                filterButton.className = "accordion-filter";
-                filterButton.textContent = filter.name;
-                filterButton.addEventListener("click", () => this.applyFilter(filter));
-                filterBar.appendChild(filterButton);
-            });
-
-            this.shadowRoot.appendChild(filterBar);
-        }
-
         this.config.items.forEach((item, index) => {
             const header = document.createElement("div");
             header.className = "accordion-header";
-            header.addEventListener("click", () => this.toggleItem(index, alwaysOpen));
+            header.addEventListener("click", () => this.toggleItem(index, alwaysOpen, transitionEffect));
 
             const title = document.createElement("p");
             title.className = "accordion-title";
@@ -135,10 +123,10 @@ class AccordionCard extends HTMLElement {
 
             const icon = document.createElement("span");
             icon.className = "accordion-icon";
-            icon.innerHTML = "&#9662;"; // Standard-Pfeil (kann durch SVG/Icons ersetzt werden)
+            icon.innerHTML = "&#9662;"; // Standard-Pfeil
 
             const body = document.createElement("div");
-            body.className = `accordion-body ${animationType}`;
+            body.className = `accordion-body ${animationType} transition-${transitionEffect}`;
             body.dataset.index = index;
 
             if (item.card) {
@@ -177,7 +165,7 @@ class AccordionCard extends HTMLElement {
         return cardElement;
     }
 
-    toggleItem(index, alwaysOpen) {
+    toggleItem(index, alwaysOpen, transitionEffect) {
         const body = this.shadowRoot.querySelector(`.accordion-body[data-index="${index}"]`);
         const header = this.shadowRoot.querySelectorAll(".accordion-header")[index];
         const icon = header.querySelector(".accordion-icon");
@@ -194,23 +182,6 @@ class AccordionCard extends HTMLElement {
             header.classList.toggle("active");
             icon.classList.toggle("active");
         }
-    }
-
-    applyFilter(filter) {
-        const items = this.shadowRoot.querySelectorAll(".accordion-item");
-        items.forEach((item) => {
-            const index = item.querySelector(".accordion-body").dataset.index;
-            const condition = this.config.filters.find((f) => f.name === filter.name)?.condition || (() => true);
-            if (typeof condition === "function" && condition(this.config.items[index])) {
-                item.style.display = "block";
-            } else {
-                item.style.display = "none";
-            }
-        });
-
-        this.shadowRoot.querySelectorAll(".accordion-filter").forEach((el) => el.classList.remove("active"));
-        const activeFilter = this.shadowRoot.querySelector(`.accordion-filter:contains("${filter.name}")`);
-        if (activeFilter) activeFilter.classList.add("active");
     }
 
     set hass(hass) {
