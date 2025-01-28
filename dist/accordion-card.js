@@ -77,7 +77,7 @@ class AccordionCard extends HTMLElement {
                     border-radius: 4px;
                     font-size: ${searchFontSize};
                     background-color: ${searchBackgroundColor};
-                    outline: none; /* Entfernt blauen Strich */
+                    outline: none;
                 }
                 .accordion-item {
                     border-bottom: 1px solid var(--divider-color);
