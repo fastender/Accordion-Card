@@ -81,7 +81,7 @@ class AccordionCard extends HTMLElement {
                     padding: 10px;
                     background-color: ${filter_background_color};
                     font-size: ${filter_font_size};
-                    font-family: var(--paper-font-headline_-_font-family);
+                    font-family: "Roboto", "Noto Sans", sans-serif;
                     -webkit-font-smoothing: var(--paper-font-headline_-_-webkit-font-smoothing);
                     white-space: var(--paper-font-headline_-_white-space);
                     font-weight: var(--paper-font-headline_-_font-weight);
@@ -147,7 +147,7 @@ class AccordionCard extends HTMLElement {
                     border-radius: 4px;
                     background: ${filter_button_color};
                     color: var(--text-primary-color);
-                    font-family: var(--paper-font-headline_-_font-family);
+                    font-family: "Roboto", "Noto Sans", sans-serif;
                     -webkit-font-smoothing: var(--paper-font-headline_-_-webkit-font-smoothing);
                     white-space: var(--paper-font-headline_-_white-space);
                     font-weight: var(--paper-font-headline_-_font-weight);
@@ -177,7 +177,7 @@ class AccordionCard extends HTMLElement {
                     padding: 8px;
                     border: 1px solid var(--divider-color);
                     border-radius: 4px;
-                    font-family: var(--paper-font-headline_-_font-family);
+                    font-family: "Roboto", "Noto Sans", sans-serif;
                     -webkit-font-smoothing: var(--paper-font-headline_-_-webkit-font-smoothing);
                     white-space: var(--paper-font-headline_-_white-space);
                     font-weight: var(--paper-font-headline_-_font-weight);
@@ -345,7 +345,7 @@ class AccordionCard extends HTMLElement {
             filterContainer.className = "accordion-filters-container";
 
             const filterBar = document.createElement("div");
-            filterBar.className = "accordion-filters";            
+            filterBar.className = "accordion-filters";         
 
             // Add scroll indicators
             const leftIndicator = document.createElement("div");
