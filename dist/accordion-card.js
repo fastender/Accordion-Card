@@ -81,9 +81,10 @@ class AccordionCard extends HTMLElement {
                     padding: 10px;
                     background-color: ${filter_background_color};
                     font-size: ${filter_font_size};
-                    font-family: "Roboto", "Noto Sans", sans-serif;
+                    font-family: var(--paper-font-headline_-_font-family);
                     -webkit-font-smoothing: var(--paper-font-headline_-_-webkit-font-smoothing);
                     white-space: var(--paper-font-headline_-_white-space);
+                    font-size: var(--paper-font-headline_-_font-size);
                     font-weight: var(--paper-font-headline_-_font-weight);
                     line-height: var(--paper-font-headline_-_line-height);
                     overflow-x: auto;
@@ -91,7 +92,6 @@ class AccordionCard extends HTMLElement {
                     -ms-overflow-style: none;
                     scroll-behavior: smooth;
                     -webkit-overflow-scrolling: touch;
-                    white-space: nowrap;
                 }
                 
                 .accordion-filters::-webkit-scrollbar {
@@ -147,9 +147,10 @@ class AccordionCard extends HTMLElement {
                     border-radius: 4px;
                     background: ${filter_button_color};
                     color: var(--text-primary-color);
-                    font-family: "Roboto", "Noto Sans", sans-serif;
+                    font-family: var(--paper-font-headline_-_font-family);
                     -webkit-font-smoothing: var(--paper-font-headline_-_-webkit-font-smoothing);
                     white-space: var(--paper-font-headline_-_white-space);
+                    font-size: var(--paper-font-headline_-_font-size);
                     font-weight: var(--paper-font-headline_-_font-weight);
                     line-height: var(--paper-font-headline_-_line-height);
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -177,12 +178,12 @@ class AccordionCard extends HTMLElement {
                     padding: 8px;
                     border: 1px solid var(--divider-color);
                     border-radius: 4px;
-                    font-family: "Roboto", "Noto Sans", sans-serif;
+                    font-family: var(--paper-font-headline_-_font-family);
                     -webkit-font-smoothing: var(--paper-font-headline_-_-webkit-font-smoothing);
                     white-space: var(--paper-font-headline_-_white-space);
+                    font-size: var(--paper-font-headline_-_font-size);
                     font-weight: var(--paper-font-headline_-_font-weight);
                     line-height: var(--paper-font-headline_-_line-height);
-                    font-size: ${search_font_size};
                     background: var(--card-background-color);
                     color: var(--primary-text-color);
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
