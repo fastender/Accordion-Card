@@ -36,34 +36,13 @@ class AccordionCard extends HTMLElement {
 
         this.config = {
             ...config,
-            language: config.language || this.ha_language || 'en', // Use HA language or fallback to en
-            show_expand_controls: config.show_expand_controls || false // New option for expand/collapse buttons
+            language: config.language || this.ha_language || 'en',
+            show_expand_controls: config.show_expand_controls || false
         };
         this.cardHelpers = await window.loadCardHelpers();
         this.render();
     }
 
-    expandAll() {
-        const headers = this.shadowRoot.querySelectorAll(".accordion-header");
-        const bodies = this.shadowRoot.querySelectorAll(".accordion-body");
-        const arrows = this.shadowRoot.querySelectorAll(".arrow");
-        
-        headers.forEach(header => header.classList.add("open"));
-        bodies.forEach(body => body.classList.add("open"));
-        arrows.forEach(arrow => arrow.classList.add("open"));
-    }
-
-    collapseAll() {
-        const headers = this.shadowRoot.querySelectorAll(".accordion-header");
-        const bodies = this.shadowRoot.querySelectorAll(".accordion-body");
-        const arrows = this.shadowRoot.querySelectorAll(".arrow");
-        
-        headers.forEach(header => header.classList.remove("open"));
-        bodies.forEach(body => body.classList.remove("open"));
-        arrows.forEach(arrow => arrow.classList.remove("open"));
-    }
-
-    
     render() {
         if (!this.config) return;
 
@@ -87,11 +66,21 @@ class AccordionCard extends HTMLElement {
 
         const style = `
             <style>
+                :host {
+                    --ha-card-font-family: var(--paper-font-body1_-_font-family);
+                    font-family: var(--ha-card-font-family);
+                    -webkit-font-smoothing: var(--paper-font-body1_-_-webkit-font-smoothing);
+                    font-size: var(--paper-font-body1_-_font-size);
+                    font-weight: var(--paper-font-body1_-_font-weight);
+                    line-height: var(--paper-font-body1_-_line-height);
+                }
                 .accordion {
                     border: 1px solid var(--divider-color);
                     border-radius: 6px;
                     overflow: hidden;
+                    font-family: inherit;
                 }
+                /* Rest of your CSS styles remain the same, just remove any explicit font-family declarations */
                 .accordion-filters {
                     display: flex;
                     gap: 10px;
@@ -99,11 +88,12 @@ class AccordionCard extends HTMLElement {
                     background-color: ${filter_background_color};
                     font-size: ${filter_font_size};
                     overflow-x: auto;
-                    scrollbar-width: none; /* Firefox */
-                    -ms-overflow-style: none; /* IE and Edge */
+                    scrollbar-width: none;
+                    -ms-overflow-style: none;
                     scroll-behavior: smooth;
                     -webkit-overflow-scrolling: touch;
                     white-space: nowrap;
+                    font-family: inherit;
                 }
                 
                 /* Hide scrollbar for Chrome, Safari and Opera */
