@@ -104,6 +104,7 @@ class AccordionCard extends HTMLElement {
                     scroll-behavior: smooth;
                     -webkit-overflow-scrolling: touch;
                     white-space: nowrap;
+                    font-family: var(--paper-font-headline_-_font-family);
                 }
                 
                 /* Hide scrollbar for Chrome, Safari and Opera */
@@ -164,6 +165,7 @@ class AccordionCard extends HTMLElement {
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     backdrop-filter: blur(10px);
                     -webkit-backdrop-filter: blur(10px);
+                    font-family: var(--paper-font-headline_-_font-family);
                 }
                 .accordion-filter.active {
                     background: var(--text-primary-color);
@@ -206,6 +208,7 @@ class AccordionCard extends HTMLElement {
                     background: var(--card-background-color);
                     color: var(--primary-text-color);
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    font-family: var(--paper-font-headline_-_font-family);
                 }
                 .accordion-search input:focus {
                     border-color: var(--accent-color);
@@ -227,6 +230,7 @@ class AccordionCard extends HTMLElement {
                     color: ${title_color};
                     font-size: ${title_size};
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    font-family: var(--paper-font-headline_-_font-family);
                 }
                 .accordion-header:hover {
                     background-color: rgba(var(--accent-color-rgb), 0.05);
@@ -241,6 +245,7 @@ class AccordionCard extends HTMLElement {
                     overflow: hidden;
                     transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
                     will-change: max-height, opacity;
+                    font-family: var(--paper-font-headline_-_font-family);
                 }
                 .accordion-body.open {
                     background-color: ${background_open};
