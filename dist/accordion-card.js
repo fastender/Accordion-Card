@@ -46,6 +46,10 @@ class AccordionCard extends HTMLElement {
     render() {
         if (!this.config) return;
 
+        // Create ha-card element
+        const card = document.createElement('ha-card');
+        this.card = card;
+
         const {
             filter_font_size = "14px",
             filter_background_color = "var(--primary-background-color)",
@@ -67,12 +71,12 @@ class AccordionCard extends HTMLElement {
         const style = `
             <style>
                 :host {
-                    --ha-card-font-family: var(--paper-font-body1_-_font-family);
-                    font-family: var(--ha-card-font-family);
-                    -webkit-font-smoothing: var(--paper-font-body1_-_-webkit-font-smoothing);
-                    font-size: var(--paper-font-body1_-_font-size);
-                    font-weight: var(--paper-font-body1_-_font-weight);
-                    line-height: var(--paper-font-body1_-_line-height);
+                    display: block;
+                }
+                ha-card {
+                    overflow: hidden;
+                    height: 100%;
+                    width: 100%;
                 }
                 .accordion {
                     border: 1px solid var(--divider-color);
