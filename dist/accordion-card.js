@@ -255,6 +255,12 @@ const style = `
         align-items: center;
         justify-content: space-between;
         width: 100%;
+        font-family: var(--paper-font-headline_-_font-family);
+        -webkit-font-smoothing: var(--paper-font-headline_-_-webkit-font-smoothing);
+        white-space: var(--paper-font-headline_-_white-space);
+        font-size: var(--paper-font-headline_-_font-size);
+        font-weight: var(--paper-font-headline_-_font-weight);
+        line-height: var(--paper-font-headline_-_line-height);
     }
     .arrow {
         width: 24px;
