@@ -2,6 +2,8 @@
 
 A custom card that creates an accordion-style expandable/collapsible interface for Home Assistant dashboards. Perfect for organizing multiple cards or information in a clean, structured way.
 
+![Live Preview](./docs/example-1.png)
+
 ## Installation
 
 1. Download `accordion-card.js`
