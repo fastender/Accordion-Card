@@ -532,65 +532,133 @@ class AccordionCard extends HTMLElement {
     
         // Überprüfen Sie, ob dieses Item den designmode aktiviert hat
         if (this.currentItem && this.currentItem.designmode === true) {
-            // Wenn es sich um eine entities-Karte handelt
-            if (config.type === "entities" && config.entities) {
-                // Prüfen Sie, ob die erste Entität ein Rollladen ist
+            let entityId = "";
+            
+            // Prüfen Sie verschiedene Konfigurationsformate
+            if (config.type === "entities" && config.entities && config.entities.length > 0) {
                 const entity = config.entities[0];
-                let entityId = "";
-                
                 if (typeof entity === 'string') {
                     entityId = entity;
                 } else if (entity && entity.entity) {
                     entityId = entity.entity;
                 }
+            } else if (config.entity) {
+                entityId = config.entity;
+            }
+            
+            // Wenn es sich um eine Cover-Entität handelt
+            if (entityId.startsWith('cover.')) {
+                console.log("Design mode aktiviert für: " + entityId);
                 
-                if (entityId.startsWith('cover.')) {
-                    // Angepasste Karte für Rollladen
-                    let newConfig = {
-                        type: "custom:vertical-stack-card",
-                        cards: [
-                            {
-                                type: "custom:state-card",
-                                entity: entityId,
-                                show_icon: false,
-                                show_name: false,
-                                show_state: true,
-                            },
-                            {
-                                type: "custom:button-card",
-                                entity: entityId,
-                                show_icon: true,
-                                show_name: false,
-                                show_state: false,
-                                tap_action: {
-                                    action: "more-info",
-                                },
-                                hold_action: {
-                                    action: "none",
-                                },
-                                style: {
-                                    border_radius: "0px",
-                                    "--ha-card-border-radius": "0px",
-                                    padding: "0px",
-                                },
+                // Erstellen Sie ein einfaches HTML-Element für die Steuerung
+                const card = document.createElement('div');
+                card.className = 'custom-cover-card';
+                card.innerHTML = `
+                    <div class="custom-cover-controls">
+                        <span class="custom-cover-state">Loading...</span>
+                        <div class="custom-cover-buttons">
+                            <button class="custom-cover-button up-button">
+                                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z" /></svg>
+                            </button>
+                            <button class="custom-cover-button stop-button">
+                                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M18,18H6V6H18V18Z" /></svg>
+                            </button>
+                            <button class="custom-cover-button down-button">
+                                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z" /></svg>
+                            </button>
+                            <button class="custom-cover-button info-button">
+                                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z" /></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                // Speichern Sie die Entity-ID für spätere Updates
+                card._entityId = entityId;
+                
+                // Fügen Sie Event-Listener hinzu
+                const upButton = card.querySelector('.up-button');
+                const stopButton = card.querySelector('.stop-button');
+                const downButton = card.querySelector('.down-button');
+                const infoButton = card.querySelector('.info-button');
+                
+                upButton.addEventListener('click', () => {
+                    this._hass.callService('cover', 'open_cover', {
+                        entity_id: entityId
+                    });
+                });
+                
+                stopButton.addEventListener('click', () => {
+                    this._hass.callService('cover', 'stop_cover', {
+                        entity_id: entityId
+                    });
+                });
+                
+                downButton.addEventListener('click', () => {
+                    this._hass.callService('cover', 'close_cover', {
+                        entity_id: entityId
+                    });
+                });
+                
+                infoButton.addEventListener('click', () => {
+                    const event = new Event('hass-more-info', {
+                        bubbles: true,
+                        cancelable: false,
+                        composed: true
+                    });
+                    event.detail = { entityId };
+                    this.dispatchEvent(event);
+                });
+                
+                // Update der Anzeige bei Änderungen
+                card.updateState = (hass) => {
+                    if (hass && hass.states && hass.states[entityId]) {
+                        const state = hass.states[entityId];
+                        const stateDisplay = card.querySelector('.custom-cover-state');
+                        
+                        if (stateDisplay) {
+                            if (state.attributes && state.attributes.current_position !== undefined) {
+                                stateDisplay.textContent = `${state.attributes.current_position}%`;
+                            } else {
+                                stateDisplay.textContent = state.state;
                             }
-                        ]
-                    };
-                    
-                    // Verwenden Sie die angepasste Konfiguration
-                    config = newConfig;
+                        }
+                    }
+                };
+                
+                // Initial update if hass is available
+                if (this._hass) {
+                    card.updateState(this._hass);
                 }
+                
+                return card;
             }
         }
     
+        // Standardmäßiges Erstellen der Karte
         const cardElement = await this.cardHelpers.createCardElement(config);
         cardElement.setConfig(config);
         if (this._hass) {
             cardElement.hass = this._hass;
         }
-
+        
         return cardElement;
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
 
     applySearch(term) {
         const items = this.shadowRoot.querySelectorAll(".accordion-item");
@@ -664,7 +732,15 @@ class AccordionCard extends HTMLElement {
             const item = this.config.items[index];
             if (item.card) {
                 const card = body.firstElementChild;
-                if (card) card.hass = hass;
+                if (card) {
+                    if (card.updateState && typeof card.updateState === 'function') {
+                        // Benutzerdefinierte Karte aktualisieren
+                        card.updateState(hass);
+                    } else {
+                        // Standard-HA-Karte aktualisieren
+                        card.hass = hass;
+                    }
+                }
             }
         });
     }
