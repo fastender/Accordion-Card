@@ -27,9 +27,6 @@ class AccordionCard extends HTMLElement {
                 all: "Tutto"
             }
         };
-        
-        // Hinzufügen dieser Zeile:
-        this.currentItem = null;
     }
 
     async setConfig(config) {
@@ -51,7 +48,7 @@ class AccordionCard extends HTMLElement {
         };
         this.cardHelpers = await window.loadCardHelpers();
         this.render();
-    }      
+    }    
 
     expandAll() {
         const headers = this.shadowRoot.querySelectorAll(".accordion-header");
@@ -97,37 +94,6 @@ class AccordionCard extends HTMLElement {
 
         const style = `
             <style>
-                .custom-cover-controls {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    padding: 10px;
-                    background-color: var(--card-background-color);
-                }
-                .custom-cover-state {
-                    color: var(--primary-text-color);
-                    font-size: 14px;
-                }
-                .custom-cover-buttons {
-                    display: flex;
-                    gap: 8px;
-                }
-                .custom-cover-button {
-                    width: 40px;
-                    height: 40px;
-                    border-radius: 4px;
-                    background-color: var(--secondary-background-color);
-                    color: var(--primary-text-color);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                    border: none;
-                }
-                .custom-cover-button:hover {
-                    background-color: var(--accent-color);
-                    color: var(--text-primary-color);
-                }            
                 .accordion {
                     border: 1px solid var(--divider-color);
                     border-radius: 6px;
@@ -324,6 +290,39 @@ class AccordionCard extends HTMLElement {
                 .fade-in {
                     animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 }
+
+                .custom-cover-controls {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 10px;
+                    background-color: var(--card-background-color);
+                }
+                .custom-cover-state {
+                    color: var(--primary-text-color);
+                    font-size: 14px;
+                }
+                .custom-cover-buttons {
+                    display: flex;
+                    gap: 8px;
+                }
+                .custom-cover-button {
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 4px;
+                    background-color: var(--secondary-background-color);
+                    color: var(--primary-text-color);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    border: none;
+                }
+                .custom-cover-button:hover {
+                    background-color: var(--accent-color);
+                    color: var(--text-primary-color);
+                }
+                
             </style>
         `;
 
@@ -437,8 +436,8 @@ class AccordionCard extends HTMLElement {
                 });
                 // Zurücksetzen nach der Erstellung
                 this.currentItem = null;
-            }            
-
+            }
+            
             accordionItem.appendChild(header);
             accordionItem.appendChild(body);
             container.appendChild(accordionItem);
@@ -529,136 +528,15 @@ class AccordionCard extends HTMLElement {
         if (!this.cardHelpers) {
             this.cardHelpers = await window.loadCardHelpers();
         }
-    
-        // Überprüfen Sie, ob dieses Item den designmode aktiviert hat
-        if (this.currentItem && this.currentItem.designmode === true) {
-            let entityId = "";
-            
-            // Prüfen Sie verschiedene Konfigurationsformate
-            if (config.type === "entities" && config.entities && config.entities.length > 0) {
-                const entity = config.entities[0];
-                if (typeof entity === 'string') {
-                    entityId = entity;
-                } else if (entity && entity.entity) {
-                    entityId = entity.entity;
-                }
-            } else if (config.entity) {
-                entityId = config.entity;
-            }
-            
-            // Wenn es sich um eine Cover-Entität handelt
-            if (entityId.startsWith('cover.')) {
-                console.log("Design mode aktiviert für: " + entityId);
-                
-                // Erstellen Sie ein einfaches HTML-Element für die Steuerung
-                const card = document.createElement('div');
-                card.className = 'custom-cover-card';
-                card.innerHTML = `
-                    <div class="custom-cover-controls">
-                        <span class="custom-cover-state">Loading...</span>
-                        <div class="custom-cover-buttons">
-                            <button class="custom-cover-button up-button">
-                                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z" /></svg>
-                            </button>
-                            <button class="custom-cover-button stop-button">
-                                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M18,18H6V6H18V18Z" /></svg>
-                            </button>
-                            <button class="custom-cover-button down-button">
-                                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z" /></svg>
-                            </button>
-                            <button class="custom-cover-button info-button">
-                                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z" /></svg>
-                            </button>
-                        </div>
-                    </div>
-                `;
-                
-                // Speichern Sie die Entity-ID für spätere Updates
-                card._entityId = entityId;
-                
-                // Fügen Sie Event-Listener hinzu
-                const upButton = card.querySelector('.up-button');
-                const stopButton = card.querySelector('.stop-button');
-                const downButton = card.querySelector('.down-button');
-                const infoButton = card.querySelector('.info-button');
-                
-                upButton.addEventListener('click', () => {
-                    this._hass.callService('cover', 'open_cover', {
-                        entity_id: entityId
-                    });
-                });
-                
-                stopButton.addEventListener('click', () => {
-                    this._hass.callService('cover', 'stop_cover', {
-                        entity_id: entityId
-                    });
-                });
-                
-                downButton.addEventListener('click', () => {
-                    this._hass.callService('cover', 'close_cover', {
-                        entity_id: entityId
-                    });
-                });
-                
-                infoButton.addEventListener('click', () => {
-                    const event = new Event('hass-more-info', {
-                        bubbles: true,
-                        cancelable: false,
-                        composed: true
-                    });
-                    event.detail = { entityId };
-                    this.dispatchEvent(event);
-                });
-                
-                // Update der Anzeige bei Änderungen
-                card.updateState = (hass) => {
-                    if (hass && hass.states && hass.states[entityId]) {
-                        const state = hass.states[entityId];
-                        const stateDisplay = card.querySelector('.custom-cover-state');
-                        
-                        if (stateDisplay) {
-                            if (state.attributes && state.attributes.current_position !== undefined) {
-                                stateDisplay.textContent = `${state.attributes.current_position}%`;
-                            } else {
-                                stateDisplay.textContent = state.state;
-                            }
-                        }
-                    }
-                };
-                
-                // Initial update if hass is available
-                if (this._hass) {
-                    card.updateState(this._hass);
-                }
-                
-                return card;
-            }
-        }
-    
-        // Standardmäßiges Erstellen der Karte
+
         const cardElement = await this.cardHelpers.createCardElement(config);
         cardElement.setConfig(config);
         if (this._hass) {
             cardElement.hass = this._hass;
         }
-        
+
         return cardElement;
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
 
     applySearch(term) {
         const items = this.shadowRoot.querySelectorAll(".accordion-item");
@@ -732,15 +610,7 @@ class AccordionCard extends HTMLElement {
             const item = this.config.items[index];
             if (item.card) {
                 const card = body.firstElementChild;
-                if (card) {
-                    if (card.updateState && typeof card.updateState === 'function') {
-                        // Benutzerdefinierte Karte aktualisieren
-                        card.updateState(hass);
-                    } else {
-                        // Standard-HA-Karte aktualisieren
-                        card.hass = hass;
-                    }
-                }
+                if (card) card.hass = hass;
             }
         });
     }
@@ -751,3 +621,4 @@ class AccordionCard extends HTMLElement {
 }
 
 customElements.define("accordion-card", AccordionCard);
+        
