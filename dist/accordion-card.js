@@ -27,21 +27,31 @@ class AccordionCard extends HTMLElement {
                 all: "Tutto"
             }
         };
+        
+        // Hinzufügen dieser Zeile:
+        this.currentItem = null;
     }
 
     async setConfig(config) {
         if (!config.items || !Array.isArray(config.items)) {
             throw new Error("You need to define an array of items.");
         }
-
+    
+        // Verarbeiten Sie designmode für jedes Item
+        if (config.items) {
+            for (let i = 0; i < config.items.length; i++) {
+                config.items[i].designmode = config.items[i].designmode || false;
+            }
+        }
+    
         this.config = {
             ...config,
-            language: config.language || this.ha_language || 'en', // Use HA language or fallback to en
-            show_expand_controls: config.show_expand_controls || false // New option for expand/collapse buttons
+            language: config.language || this.ha_language || 'en',
+            show_expand_controls: config.show_expand_controls || false
         };
         this.cardHelpers = await window.loadCardHelpers();
         this.render();
-    }
+    }      
 
     expandAll() {
         const headers = this.shadowRoot.querySelectorAll(".accordion-header");
@@ -87,6 +97,37 @@ class AccordionCard extends HTMLElement {
 
         const style = `
             <style>
+                .custom-cover-controls {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 10px;
+                    background-color: var(--card-background-color);
+                }
+                .custom-cover-state {
+                    color: var(--primary-text-color);
+                    font-size: 14px;
+                }
+                .custom-cover-buttons {
+                    display: flex;
+                    gap: 8px;
+                }
+                .custom-cover-button {
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 4px;
+                    background-color: var(--secondary-background-color);
+                    color: var(--primary-text-color);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    border: none;
+                }
+                .custom-cover-button:hover {
+                    background-color: var(--accent-color);
+                    color: var(--text-primary-color);
+                }            
                 .accordion {
                     border: 1px solid var(--divider-color);
                     border-radius: 6px;
@@ -389,10 +430,14 @@ class AccordionCard extends HTMLElement {
             body.className = "accordion-body";
 
             if (item.card) {
+                // Speichern Sie das aktuelle Item
+                this.currentItem = item;
                 this.createCard(item.card).then((card) => {
                     if (card) body.appendChild(card);
                 });
-            }
+                // Zurücksetzen nach der Erstellung
+                this.currentItem = null;
+            }            
 
             accordionItem.appendChild(header);
             accordionItem.appendChild(body);
@@ -484,7 +529,60 @@ class AccordionCard extends HTMLElement {
         if (!this.cardHelpers) {
             this.cardHelpers = await window.loadCardHelpers();
         }
-
+    
+        // Überprüfen Sie, ob dieses Item den designmode aktiviert hat
+        if (this.currentItem && this.currentItem.designmode === true) {
+            // Wenn es sich um eine entities-Karte handelt
+            if (config.type === "entities" && config.entities) {
+                // Prüfen Sie, ob die erste Entität ein Rollladen ist
+                const entity = config.entities[0];
+                let entityId = "";
+                
+                if (typeof entity === 'string') {
+                    entityId = entity;
+                } else if (entity && entity.entity) {
+                    entityId = entity.entity;
+                }
+                
+                if (entityId.startsWith('cover.')) {
+                    // Angepasste Karte für Rollladen
+                    let newConfig = {
+                        type: "custom:vertical-stack-card",
+                        cards: [
+                            {
+                                type: "custom:state-card",
+                                entity: entityId,
+                                show_icon: false,
+                                show_name: false,
+                                show_state: true,
+                            },
+                            {
+                                type: "custom:button-card",
+                                entity: entityId,
+                                show_icon: true,
+                                show_name: false,
+                                show_state: false,
+                                tap_action: {
+                                    action: "more-info",
+                                },
+                                hold_action: {
+                                    action: "none",
+                                },
+                                style: {
+                                    border_radius: "0px",
+                                    "--ha-card-border-radius": "0px",
+                                    padding: "0px",
+                                },
+                            }
+                        ]
+                    };
+                    
+                    // Verwenden Sie die angepasste Konfiguration
+                    config = newConfig;
+                }
+            }
+        }
+    
         const cardElement = await this.cardHelpers.createCardElement(config);
         cardElement.setConfig(config);
         if (this._hass) {
